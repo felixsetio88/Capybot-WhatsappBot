@@ -1,0 +1,10 @@
+{
+  "active_model_id": "qwen-3.5-2b-q4",
+  "context_length": 8192,
+  "downloaded_models": [
+    "qwen-3.5-0.8b-q4",
+    "qwen-3.5-2b-q4",
+    "qwen-3.5-0.8b-q8"
+  ],
+  "updated_at": 1789831909.129
+}

@@ -1,0 +1,19 @@
+[Unit]
+Description=Capybot WhatsApp Bot & Admin Dashboard
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/Whatsapp Bot
+ExecStart=/usr/bin/node --max-old-space-size=450 src/server.js
+Restart=always
+RestartSec=3s
+Environment=NODE_ENV=production
+Environment=PORT=3000
+
+# Security & limits
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

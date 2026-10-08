@@ -1,0 +1,2731 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Capybot V1.1 - All-in-One WhatsApp Group Bot, On-Device AI & Dashboard</title>
+  <link rel="icon" type="image/png" href="/assets/capybot_logo.png">
+  <meta name="description"
+    content="Capybot V1.1 - Real-time WhatsApp Group Bot & On-Device AI Assistant for member chat counting, Instagram/TikTok link moderation, DeepSeek Janus 1.3B AI Q&A and image generation, View Once revealer, and security.">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js for Activity Visuals -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Socket.IO Client -->
+  <script src="/socket.io/socket.io.js"></script>
+
+  <!-- Dashboard Stylesheet -->
+  <link rel="stylesheet" href="/css/dashboard.css?v=1.1.6">
+</head>
+
+<body class="dark-theme">
+  <!-- Mobile Sidebar Backdrop Overlay -->
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <div class="app-layout">
+    <!-- Sidebar / Navigation Drawer -->
+    <aside class="sidebar" id="app-sidebar">
+      <div class="brand-container">
+        <div class="brand-logo">
+          <img src="/assets/capybot_logo.png" alt="CapyBot Mascot Logo" class="brand-logo-img">
+        </div>
+        <div class="brand-details">
+          <h1 class="brand-title">CapyBot<span class="brand-badge">V1.1</span></h1>
+          <p class="brand-subtitle">Your all-in-one Bot</p>
+        </div>
+        <button class="icon-btn sidebar-close-btn" id="btn-close-sidebar" title="Close Menu" aria-label="Close Menu">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-tab="overview" id="nav-tab-overview">
+          <i data-lucide="layout-dashboard"></i>
+          <span>Dashboard</span>
+        </button>
+        <button class="nav-item" data-tab="chatbot" id="nav-tab-chatbot">
+          <i data-lucide="bot"></i>
+          <span>AI Chatbot</span>
+          <span class="nav-pill"
+            style="margin-left: auto; font-size: 0.65rem; background: linear-gradient(135deg, #0D9488, #2DD4BF); color: #042F2C; font-weight: 800; padding: 1px 6px; border-radius: 10px;">New</span>
+        </button>
+        <button class="nav-item" data-tab="models" id="nav-tab-models">
+          <i data-lucide="cpu"></i>
+          <span>AI Models</span>
+        </button>
+        <button class="nav-item" data-tab="groups" id="nav-tab-groups">
+          <i data-lucide="users"></i>
+          <span>Group Members & Stats</span>
+        </button>
+        <button class="nav-item" data-tab="moderation" id="nav-tab-moderation">
+          <i data-lucide="shield-alert"></i>
+          <span>Link Moderation</span>
+        </button>
+        <button class="nav-item" data-tab="logs" id="nav-tab-logs">
+          <i data-lucide="list-filter"></i>
+          <span>Live Activity Logs</span>
+        </button>
+        <button class="nav-item" data-tab="chats" id="nav-tab-chats">
+          <i data-lucide="messages-square"></i>
+          <span>Group Chats</span>
+        </button>
+        <button class="nav-item" data-tab="help" id="nav-tab-help">
+          <i data-lucide="help-circle"></i>
+          <span>Help & Commands</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <!-- Single Unified User Profile Card (Clickable to open user settings popup) -->
+        <div class="user-profile-card clickable" id="user-profile-card" title="Click to view account info & settings"
+          tabindex="0" role="button" aria-haspopup="dialog">
+          <div class="avatar user-avatar" id="user-avatar">
+            <i data-lucide="user-check"></i>
+          </div>
+          <div class="user-info">
+            <div class="user-name-line">
+              <span class="user-display-name" id="user-display-name">Admin</span>
+              <span class="user-role-badge">Admin</span>
+            </div>
+            <span class="user-phone-label" id="user-phone-label">+60 12-345 6789</span>
+          </div>
+          <div class="user-menu-trigger" title="Settings">
+            <i data-lucide="settings"></i>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Top Header -->
+      <header class="top-header">
+        <div class="header-left">
+          <button class="icon-btn mobile-menu-btn" id="btn-mobile-menu" title="Open Navigation Menu"
+            aria-label="Open Navigation Menu">
+            <i data-lucide="menu"></i>
+          </button>
+          <div class="header-title-group">
+            <h2 class="page-title" id="page-heading">Group Overview & Analytics</h2>
+            <p class="page-desc" id="page-subheading">Real-time chat activity, Instagram/TikTok link blocker, and group
+              controls.</p>
+          </div>
+        </div>
+        <div class="header-right">
+          <!-- Connection Indicator -->
+          <div class="connection-badge status-disconnected" id="header-status-badge">
+            <span class="pulse-dot"></span>
+            <span id="header-status-label">Disconnected</span>
+          </div>
+
+          <!-- Group Quick Selector -->
+          <div class="group-select-wrapper">
+            <i data-lucide="message-square" class="select-icon"></i>
+            <select id="group-selector" class="custom-select" aria-label="Select WhatsApp Group">
+              <option value="">Loading Groups...</option>
+            </select>
+          </div>
+
+          <!-- Refresh Button -->
+          <button class="icon-btn" id="btn-refresh-data" title="Refresh Data" aria-label="Refresh Data">
+            <i data-lucide="refresh-cw"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- Scrollable Container -->
+      <div class="content-scroll">
+        <!-- Dynamic Content Tabs -->
+        <!-- TAB 1: OVERVIEW & STATS (Dashboard) -->
+        <div class="tab-content active" id="tab-overview">
+          <!-- Capybot V1.1 Release Banner -->
+          <div class="v1-1-banner">
+            <div class="v1-1-header">
+              <div class="v1-1-title-wrap">
+                <span class="v1-1-badge">Capybot V1.1</span>
+                <h2 class="v1-1-title">✨ What's New in Capybot V1.1</h2>
+              </div>
+              <span class="v1-1-tagline">⚡ On-Device AI & Advanced Moderation</span>
+            </div>
+            <p class="v1-1-subtitle">Capybot V1.1 introduces on-device Qwen 3.5 AI models (0.8B, 2B, 4B), multimodal
+              image recognition, 100-message chat summaries, View Once media decryptor, passive member filtering, and
+              runtime telemetry—all running 100% free without external API keys.</p>
+            <div class="v1-1-features-grid">
+              <div class="v1-1-feature-item">
+                <div class="v1-1-feature-icon">🤖</div>
+                <div class="v1-1-feature-content">
+                  <h4>On-Device AI Assistant (<code>.ask</code>)</h4>
+                  <p>Instant Q&A and multimodal visual recognition powered by <strong>Qwen 3.5</strong> on-device
+                    models.</p>
+                </div>
+              </div>
+              <div class="v1-1-feature-item">
+                <div class="v1-1-feature-icon">📊</div>
+                <div class="v1-1-feature-content">
+                  <h4>Group Chat Summarizer (<code>.summarize</code>)</h4>
+                  <p>Analyzes the last 100 group messages from SQLite into structured executive bullet points &
+                    takeaways.</p>
+                </div>
+              </div>
+              <div class="v1-1-feature-item">
+                <div class="v1-1-feature-icon">👁️</div>
+                <div class="v1-1-feature-content">
+                  <h4>Multimodal Image Recognition (<code>.ask</code> with photo)</h4>
+                  <p>Inspect and analyze any photo or replied image with zero cloud telemetry.</p>
+                </div>
+              </div>
+              <div class="v1-1-feature-item">
+                <div class="v1-1-feature-icon">🔓</div>
+                <div class="v1-1-feature-content">
+                  <h4>View Once Revealer (<code>.peek</code>)</h4>
+                  <p>Decrypt and resend WhatsApp View Once ("one-time view") photos and videos permanently to the chat.
+                  </p>
+                </div>
+              </div>
+              <div class="v1-1-feature-item">
+                <div class="v1-1-feature-icon">💤</div>
+                <div class="v1-1-feature-content">
+                  <h4>Passive Member Filter (<code>.passive</code>)</h4>
+                  <p>Filters and tags group members below minimum message threshold (customizable in chat & web
+                    dashboard).</p>
+                </div>
+              </div>
+              <div class="v1-1-feature-item">
+                <div class="v1-1-feature-icon">⏱️</div>
+                <div class="v1-1-feature-content">
+                  <h4>Telemetry & Version (<code>.ping</code>, <code>.runtime</code>, <code>.about</code>)</h4>
+                  <p>Real-time response latency, continuous uptime tracking, and in-chat version release notes.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI Summary Cards (Dashboard Only) -->
+          <section class="kpi-grid">
+            <div class="kpi-card" id="kpi-messages">
+              <div class="kpi-icon-wrap bg-blue">
+                <i data-lucide="message-circle"></i>
+              </div>
+              <div class="kpi-info">
+                <span class="kpi-label">Total Messages Counted</span>
+                <h3 class="kpi-value" id="stat-total-messages">0</h3>
+              </div>
+            </div>
+
+            <div class="kpi-card" id="kpi-groups">
+              <div class="kpi-icon-wrap bg-purple">
+                <i data-lucide="users"></i>
+              </div>
+              <div class="kpi-info">
+                <span class="kpi-label">Active Groups</span>
+                <h3 class="kpi-value" id="stat-active-groups">0</h3>
+              </div>
+            </div>
+
+            <div class="kpi-card" id="kpi-blocked">
+              <div class="kpi-icon-wrap bg-amber">
+                <i data-lucide="shield-ban"></i>
+              </div>
+              <div class="kpi-info">
+                <span class="kpi-label">Links Blocked (IG / TikTok)</span>
+                <h3 class="kpi-value" id="stat-links-blocked">0</h3>
+              </div>
+            </div>
+
+            <div class="kpi-card" id="kpi-top-user">
+              <div class="kpi-icon-wrap bg-emerald">
+                <i data-lucide="trophy"></i>
+              </div>
+              <div class="kpi-info">
+                <span class="kpi-label">Top Active Chatter</span>
+                <h3 class="kpi-value truncate" id="stat-top-chatter">None</h3>
+              </div>
+            </div>
+          </section>
+
+          <div class="dashboard-grid">
+            <!-- Active Group Leaderboard Section -->
+            <div class="card col-span-8">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Member Chat Leaderboard</h3>
+                  <p class="card-subtitle">Live message counters for individual members in selected group</p>
+                </div>
+                <div class="card-actions">
+                  <div class="search-box">
+                    <i data-lucide="search"></i>
+                    <input type="text" id="leaderboard-search" placeholder="Search member name or phone..."
+                      aria-label="Search members">
+                  </div>
+                  <button class="btn btn-danger btn-sm" id="btn-reset-group-counts">
+                    <i data-lucide="trash-2"></i>
+                    <span>Reset All in Group</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="table-responsive">
+                <table class="data-table" id="leaderboard-table">
+                  <thead>
+                    <tr>
+                      <th>Rank</th>
+                      <th>Member</th>
+                      <th>Phone / JID</th>
+                      <th>Message Count</th>
+                      <th>Last Active</th>
+                      <th class="text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="leaderboard-tbody">
+                    <tr>
+                      <td colspan="6" class="table-empty">
+                        <i data-lucide="inbox"></i>
+                        <p>No messages recorded yet. Select a group and send messages to start tracking!</p>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Activity Chart & Bot Status Overview -->
+            <div class="card col-span-4 flex-col">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Activity Breakdown</h3>
+                  <p class="card-subtitle">Distribution of group chat volume</p>
+                </div>
+              </div>
+              <div class="chart-container">
+                <canvas id="activityChart"></canvas>
+              </div>
+
+              <!-- Bot Admin Warning Box -->
+              <div class="bot-admin-notice" id="bot-admin-notice-box">
+                <div class="notice-icon">
+                  <i data-lucide="info"></i>
+                </div>
+                <div class="notice-content">
+                  <h4 id="bot-admin-status-title">Bot Group Permissions</h4>
+                  <p id="bot-admin-status-desc">Promote the bot to <strong>Group Admin</strong> in WhatsApp to enable
+                    automatic deletion of Instagram & TikTok links.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: AI CHATBOT (ChatGPT & Google Gemini Style UI/UX) -->
+        <div class="tab-content" id="tab-chatbot">
+          <div class="chatbot-layout-container">
+            <!-- Locked / Disabled State Overlay when AI features are toggled off -->
+            <div class="chatbot-disabled-overlay" id="chatbot-disabled-overlay" style="display: none;">
+              <div class="chatbot-disabled-card">
+                <div class="chatbot-disabled-icon">
+                  <i data-lucide="lock"></i>
+                </div>
+                <h3>AI Features Are Disabled</h3>
+                <p>On-device AI capabilities (.ask, .summarize, and web chatbot) are currently turned off in your
+                  settings.</p>
+                <button type="button" class="btn btn-primary btn-md" id="btn-enable-ai-from-chatbot">
+                  <i data-lucide="sparkles"></i>
+                  <span>Enable AI Features</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Left: Conversation Sessions History Sidebar -->
+            <aside class="chatbot-sidebar" id="chatbot-sidebar">
+              <div class="chatbot-sidebar-header">
+                <button class="btn btn-primary btn-new-chat" id="btn-new-chat" title="Start a fresh conversation">
+                  <i data-lucide="plus"></i>
+                  <span>New Chat</span>
+                </button>
+                <button class="icon-btn chatbot-sidebar-close-btn" id="btn-close-chatbot-sidebar"
+                  title="Collapse conversations">
+                  <i data-lucide="panel-left-close"></i>
+                </button>
+              </div>
+
+              <!-- Search Conversations -->
+              <div class="chatbot-search-wrap">
+                <i data-lucide="search" class="chatbot-search-icon"></i>
+                <input type="text" id="chatbot-search-input" class="chatbot-search-input"
+                  placeholder="Search conversations...">
+              </div>
+
+              <!-- Sessions List -->
+              <div class="chatbot-sessions-list" id="chatbot-sessions-list">
+                <!-- Rendered dynamically by dashboard.js (Today, Yesterday, Previous 7 Days) -->
+              </div>
+
+              <!-- Sidebar Footer -->
+              <div class="chatbot-sidebar-footer">
+                <button class="btn btn-secondary btn-xs text-danger" id="btn-clear-all-chats"
+                  title="Erase all conversation history">
+                  <i data-lucide="trash-2"></i>
+                  <span>Clear All History</span>
+                </button>
+              </div>
+            </aside>
+
+            <!-- Right / Center: Main Chat Canvas -->
+            <main class="chatbot-main-area">
+              <!-- Top Chat Header Bar -->
+              <header class="chatbot-header">
+                <div class="chatbot-header-left">
+                  <button class="icon-btn chatbot-toggle-sidebar-btn" id="btn-toggle-chatbot-sidebar"
+                    title="Toggle Chat History">
+                    <i data-lucide="panel-left"></i>
+                  </button>
+                  <div class="chatbot-model-indicator-wrap" id="chatbot-model-indicator-wrap"
+                    title="Active AI model applied from AI Models page">
+                    <i data-lucide="sparkles" class="chatbot-header-sparkle"></i>
+                    <span class="chatbot-active-model-name" id="chatbot-active-model-name">Qwen 3.5 0.8B Q4</span>
+                    <div class="connection-badge status-available chatbot-status-badge" id="chatbot-status-badge">
+                      <span class="pulse-dot"></span>
+                      <span id="chatbot-status-label">Available</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="chatbot-header-right">
+                  <span class="chatbot-context-badge" id="chatbot-context-pill" title="Active Context Window">
+                    <i data-lucide="cpu" style="width: 12px; height: 12px;"></i>
+                    <span id="chatbot-context-label">4,096 tokens</span>
+                  </span>
+                  <button class="icon-btn" id="btn-chatbot-export" title="Export conversation as Markdown">
+                    <i data-lucide="download"></i>
+                  </button>
+                  <button class="icon-btn" id="btn-chatbot-clear-current" title="Clear current messages">
+                    <i data-lucide="rotate-ccw"></i>
+                  </button>
+                </div>
+              </header>
+
+              <!-- Scrollable Messages Container -->
+              <div class="chatbot-messages-scroll" id="chatbot-messages-scroll">
+                <!-- Gemini / ChatGPT Welcome Empty State -->
+                <div class="chatbot-welcome-hero" id="chatbot-welcome-hero">
+                  <div class="welcome-sparkle-icon">
+                    <i data-lucide="sparkles"></i>
+                  </div>
+                  <h2 class="welcome-title">✨ What can I help with today?</h2>
+                  <p class="welcome-subtitle">Powered by on-device <strong>Qwen 3.5</strong> foundation models with
+                    multimodal vision.</p>
+
+                  <!-- 4 Prompt Suggestion Cards -->
+                  <div class="welcome-suggestions-grid">
+                    <div class="suggestion-card"
+                      data-prompt="Explain how on-device LLMs work in simple terms and why zero cloud API keys matter.">
+                      <div class="suggestion-icon bg-indigo">
+                        <i data-lucide="lightbulb"></i>
+                      </div>
+                      <div class="suggestion-content">
+                        <h4>Explain a Concept</h4>
+                        <p>How on-device LLMs run 100% locally with total privacy</p>
+                      </div>
+                    </div>
+
+                    <div class="suggestion-card"
+                      data-prompt="Describe the key visual elements, lighting, objects, and composition of this image in detail."
+                      data-needs-image="true">
+                      <div class="suggestion-icon bg-teal">
+                        <i data-lucide="image"></i>
+                      </div>
+                      <div class="suggestion-content">
+                        <h4>Multimodal Vision</h4>
+                        <p>Attach or drop a photo to recognize objects, text, and scene details</p>
+                      </div>
+                    </div>
+
+                    <div class="suggestion-card"
+                      data-prompt="Draft a friendly welcome announcement for new WhatsApp group members with rules and guidelines.">
+                      <div class="suggestion-icon bg-purple">
+                        <i data-lucide="file-text"></i>
+                      </div>
+                      <div class="suggestion-content">
+                        <h4>Draft Announcements</h4>
+                        <p>Create a structured welcome message for group participants</p>
+                      </div>
+                    </div>
+
+                    <div class="suggestion-card"
+                      data-prompt="Write a clean JavaScript helper function with regex to detect Instagram and TikTok URLs.">
+                      <div class="suggestion-icon bg-amber">
+                        <i data-lucide="code"></i>
+                      </div>
+                      <div class="suggestion-content">
+                        <h4>Code & Logic</h4>
+                        <p>Generate clean JavaScript helper functions with copyable syntax</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Messages Stream Feed -->
+                <div class="chatbot-feed" id="chatbot-feed" style="display: none;">
+                  <!-- Rendered dynamically -->
+                </div>
+              </div>
+
+              <!-- Bottom Floating Input Bar (ChatGPT & Gemini Floating Pill) -->
+              <footer class="chatbot-input-footer">
+                <div class="chatbot-input-container">
+                  <!-- Attached Image Preview Ribbon -->
+                  <div class="chatbot-attachment-preview" id="chatbot-attachment-preview" style="display: none;">
+                    <div class="attachment-thumb-wrap">
+                      <img id="chatbot-attachment-img" src="" alt="Attached Image">
+                      <button type="button" class="attachment-remove-btn" id="btn-remove-attachment"
+                        title="Remove photo">
+                        <i data-lucide="x"></i>
+                      </button>
+                    </div>
+                    <span class="attachment-label">Photo attached for Multimodal Vision</span>
+                  </div>
+
+                  <form class="chatbot-input-form" id="chatbot-input-form">
+                    <input type="file" id="chatbot-file-input" accept="image/*" style="display: none;">
+                    <button type="button" class="chatbot-attach-btn" id="btn-chatbot-attach"
+                      title="Attach image for vision analysis">
+                      <i data-lucide="image-plus"></i>
+                    </button>
+
+                    <textarea id="chatbot-textarea" class="chatbot-textarea" rows="1"
+                      placeholder="Ask anything or attach a photo... (Enter to send, Shift+Enter for new line)"
+                      aria-label="Ask AI"></textarea>
+
+                    <button type="submit" class="chatbot-send-btn" id="btn-chatbot-send" title="Send message" disabled>
+                      <i data-lucide="arrow-up" id="chatbot-send-icon"></i>
+                    </button>
+                  </form>
+                </div>
+                <div class="chatbot-disclaimer">
+                  <span>Qwen 3.5 runs 100% on-device • Zero Cloud Telemetry • Double-check important info.</span>
+                </div>
+              </footer>
+            </main>
+          </div>
+        </div>
+
+        <!-- TAB: AI MODELS MANAGEMENT & SETTINGS -->
+        <div class="tab-content" id="tab-models">
+          <!-- Fail-Safe Crash Alert Banner (Visible when AI recovery triggered) -->
+          <div class="ai-crash-alert-card mb-6" id="ai-crash-alert" style="display: none;">
+            <div class="ai-crash-alert-icon">
+              <i data-lucide="alert-triangle"></i>
+            </div>
+            <div class="ai-crash-alert-body">
+              <div class="ai-crash-alert-title-row">
+                <h4 class="ai-crash-alert-title">🛡️ Safe Mode Activated: AI Features Disabled After Unexpected Exit
+                </h4>
+                <span class="ai-crash-alert-badge">Fail-Safe Protection</span>
+              </div>
+              <p class="ai-crash-alert-desc" id="ai-crash-alert-msg">
+                The application detected an unexpected termination or memory fault with the active AI model during the
+                previous session. AI features were automatically disabled on startup to keep your WhatsApp bot stable.
+              </p>
+              <div class="ai-crash-alert-actions">
+                <button type="button" class="btn btn-primary btn-sm" id="btn-re-enable-safe-ai">
+                  <i data-lucide="shield-check"></i>
+                  <span>Switch to Safe Model (0.8B Q4) & Re-Enable</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-dismiss-ai-crash">
+                  <span>Dismiss Alert</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top Telemetry & Active Engine Status Banner -->
+          <div class="ai-models-hero-card mb-6">
+            <div class="ai-hero-header">
+              <div class="ai-hero-title-group">
+                <div class="ai-hero-icon-wrap">
+                  <i data-lucide="cpu"></i>
+                </div>
+                <div>
+                  <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <h3 class="ai-hero-title">On-Device AI Models & Engine</h3>
+                    <div class="connection-badge status-available" id="models-page-status-badge">
+                      <span class="pulse-dot"></span>
+                      <span id="models-page-status-label">Available</span>
+                    </div>
+                  </div>
+                  <p class="ai-hero-desc">100% On-Device Foundation Models • Zero Cloud API Keys • Multimodal Vision &
+                    Image Recognition</p>
+                </div>
+              </div>
+              <div class="ai-hero-active-badge-wrap">
+                <span class="ai-active-pill-label">Active Model</span>
+                <span class="ai-active-pill-name" id="models-page-active-model-name">Qwen 3.5 0.8B Q4</span>
+              </div>
+            </div>
+
+            <div class="ai-hero-stats-grid">
+              <!-- Stat 1: Active Model Info -->
+              <div class="ai-stat-box">
+                <span class="ai-stat-label">Active Quantization</span>
+                <div class="ai-stat-value" id="models-page-quantization">Q4_K_M (4-bit)</div>
+                <span class="ai-stat-sub" id="models-page-vram-sub">~800 MB RAM Required</span>
+              </div>
+
+              <!-- Stat 2: Vision & Multimodal Status -->
+              <div class="ai-stat-box">
+                <span class="ai-stat-label">Multimodal Vision</span>
+                <div class="ai-stat-value text-emerald">
+                  <i data-lucide="eye"
+                    style="display:inline; width:16px; height:16px; vertical-align:middle; margin-right:4px;"></i>
+                  <span>Supported</span>
+                </div>
+                <span class="ai-stat-sub">Image Recognition on .ask</span>
+              </div>
+
+              <!-- Stat 3: Context Length Configurator -->
+              <div class="ai-stat-box ai-context-box">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <span class="ai-stat-label">Active Context Length</span>
+                  <span class="ai-context-current-badge" id="models-context-val-label">4,096 tokens</span>
+                </div>
+                <div class="ai-context-control-wrap">
+                  <select id="select-context-length" class="custom-select ai-context-select"
+                    aria-label="Select Context Length">
+                    <option value="512">512 tokens (Ultra Fast)</option>
+                    <option value="1024">1,024 tokens</option>
+                    <option value="2048">2,048 tokens</option>
+                    <option value="4096" selected>4,096 tokens (Standard)</option>
+                    <option value="8192">8,192 tokens (Recommended)</option>
+                    <option value="16384">16,384 tokens (High Context)</option>
+                    <option value="32768">32,768 tokens (Ultra Context)</option>
+                  </select>
+                  <button class="btn btn-primary btn-sm" id="btn-save-context-length" title="Apply context length">
+                    <i data-lucide="check"></i>
+                    <span>Apply</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section: System Check & Hardware Recommendation Assessment -->
+          <div class="ai-system-check-card mb-6" id="ai-system-check-card">
+            <div class="system-check-top">
+              <div class="system-check-title-wrap">
+                <div class="system-check-icon-badge">
+                  <i data-lucide="shield-check"></i>
+                </div>
+                <div>
+                  <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <h4 class="system-check-heading">System Hardware Check & AI Safety Assessment</h4>
+                    <span class="system-check-status-tag" id="system-check-status-tag">Ready</span>
+                  </div>
+                  <p class="system-check-desc" id="system-check-desc">
+                    Analyzes your device's total RAM, current memory load, and free headroom to recommend the safest AI
+                    model and prevent crashes.
+                  </p>
+                </div>
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-run-system-check"
+                title="Run live hardware memory assessment">
+                <i data-lucide="activity"></i>
+                <span>Run System Check</span>
+              </button>
+            </div>
+
+            <div class="system-check-grid">
+              <!-- Metric 1: Total System RAM -->
+              <div class="system-check-cell">
+                <span class="sc-label">Total System RAM</span>
+                <div class="sc-val" id="sc-total-ram">-- GB</div>
+                <span class="sc-sub">Hardware Capacity</span>
+              </div>
+
+              <!-- Metric 2: Available Free RAM -->
+              <div class="system-check-cell">
+                <span class="sc-label">Available Free RAM</span>
+                <div class="sc-val text-teal" id="sc-free-ram">-- GB</div>
+                <span class="sc-sub" id="sc-free-ram-sub">Memory Headroom</span>
+              </div>
+
+              <!-- Metric 3: RAM Load & Gauge -->
+              <div class="system-check-cell">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span class="sc-label">Memory Usage</span>
+                  <span class="sc-percent-label" id="sc-ram-percent">--%</span>
+                </div>
+                <div class="sc-progress-bar">
+                  <div class="sc-progress-fill" id="sc-ram-bar-fill" style="width: 0%;"></div>
+                </div>
+                <span class="sc-sub" id="sc-ram-status-text">Evaluating system load...</span>
+              </div>
+
+              <!-- Metric 4: Recommended Model -->
+              <div class="system-check-cell sc-recommendation-cell">
+                <span class="sc-label">🌟 Recommended for Your System</span>
+                <div class="sc-val text-amber" id="sc-recommended-model">Qwen 3.5 0.8B Q4</div>
+                <span class="sc-sub" id="sc-recommended-reason">Minimal RAM footprint • Zero crash risk</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section: 6 Qwen 3.5 AI Models Grid -->
+          <div class="card mb-6">
+            <div class="card-header border-b">
+              <div>
+                <h3 class="card-title">
+                  <i data-lucide="layers"
+                    style="display:inline; width:18px; height:18px; vertical-align:middle; margin-right:6px; color:#2DD4BF;"></i>
+                  Qwen 3.5 Model Catalog
+                </h3>
+                <p class="card-subtitle">Download and apply local Qwen 3.5 foundation models tailored to your system
+                  resources</p>
+              </div>
+              <button class="btn btn-secondary btn-sm" id="btn-refresh-models-list" title="Refresh models status">
+                <i data-lucide="refresh-cw"></i>
+                <span>Refresh</span>
+              </button>
+            </div>
+
+            <!-- Dynamic Model Cards Grid -->
+            <div class="ai-models-grid" id="ai-models-grid-container">
+              <!-- Rendered dynamically by dashboard.js with download bars, apply buttons, badges -->
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: GROUPS & MEMBERS (Full view) -->
+        <div class="tab-content" id="tab-groups">
+          <div class="card mb-6">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Connected WhatsApp Groups</h3>
+                <p class="card-subtitle">Manage group message metrics and view participant statistics</p>
+              </div>
+            </div>
+            <div class="groups-grid" id="groups-cards-container">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+          <!-- Dedicated Blocked Members Section -->
+          <div class="card" id="blocked-users-card">
+            <div class="card-header border-b">
+              <div>
+                <h3 class="card-title"><i data-lucide="user-x"
+                    style="display:inline; width:18px; height:18px; vertical-align:middle; margin-right:6px; color:#EF4444;"></i>
+                  Blocked Group Members</h3>
+                <p class="card-subtitle">Members whose messages are automatically deleted by CapyBot in the selected
+                  group</p>
+              </div>
+              <span class="badge btn-danger" id="blocked-count-badge">0 Blocked</span>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table" id="blocked-users-table">
+                <thead>
+                  <tr>
+                    <th>Member</th>
+                    <th>Phone / JID</th>
+                    <th>Date Blocked</th>
+                    <th>Status</th>
+                    <th class="text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="blocked-users-tbody">
+                  <tr>
+                    <td colspan="5" class="table-empty">
+                      <i data-lucide="shield-check"></i>
+                      <p>No members are currently blocked in this group.</p>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: LINK MODERATION & BOT CONFIGURATION -->
+        <div class="tab-content" id="tab-moderation">
+          <div class="card max-w-4xl mx-auto">
+            <div class="card-header border-b">
+              <div>
+                <h3 class="card-title">Security & Moderation Settings</h3>
+                <p class="card-subtitle">Configure link blockers, admin bypass, and automatic responses</p>
+              </div>
+              <span class="badge badge-info" id="settings-group-name-badge">Global / Selected Group</span>
+            </div>
+
+            <form id="settings-form" class="settings-form">
+              <!-- System Health & Crash Diagnostics Quick Link -->
+              <div class="setting-item" style="background: rgba(244, 63, 94, 0.05); border: 1px solid rgba(244, 63, 94, 0.2); border-radius: var(--radius-md); padding: 12px 16px; margin-bottom: 16px;">
+                <div class="setting-info">
+                  <div class="setting-icon" style="background: rgba(244, 63, 94, 0.15); color: #F43F5E;">
+                    <i data-lucide="shield-alert"></i>
+                  </div>
+                  <div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <label class="setting-label" style="margin-bottom: 0;">Application Crash History & Health</label>
+                      <span class="badge" id="mod-tab-crash-badge" style="background: rgba(16, 185, 129, 0.15); color: #10B981; font-size: 0.7rem; font-weight: 700;">Healthy</span>
+                    </div>
+                    <p class="setting-desc">View previous server crashes, memory exhaustions (OOM), and error causes.</p>
+                  </div>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-mod-view-crashes" style="flex-shrink: 0;">
+                  <i data-lucide="history"></i>
+                  <span>View Crash History</span>
+                </button>
+              </div>
+
+              <!-- Setting 1: Instagram Blocker -->
+              <div class="setting-item">
+                <div class="setting-info">
+                  <div class="setting-icon bg-pink">
+                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"
+                      stroke-linecap="round" stroke-linejoin="round" class="lucide-icon"
+                      style="vertical-align: middle;">
+                      <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                    </svg>
+                  </div>
+                  <div>
+                    <label class="setting-label" for="toggle-block-instagram">Block Instagram Links</label>
+                    <p class="setting-desc">Automatically detect and block Instagram post, reel, and profile links from
+                      non-admins.</p>
+                  </div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="toggle-block-instagram" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <!-- Setting 2: TikTok Blocker -->
+              <div class="setting-item">
+                <div class="setting-info">
+                  <div class="setting-icon bg-teal">
+                    <i data-lucide="video"></i>
+                  </div>
+                  <div>
+                    <label class="setting-label" for="toggle-block-tiktok">Block TikTok Links</label>
+                    <p class="setting-desc">Automatically detect and block TikTok video, shortlinks, and profile links
+                      from non-admins.</p>
+                  </div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="toggle-block-tiktok" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <!-- Setting 3: Auto-Delete Messages -->
+              <div class="setting-item">
+                <div class="setting-info">
+                  <div class="setting-icon bg-amber">
+                    <i data-lucide="trash"></i>
+                  </div>
+                  <div>
+                    <label class="setting-label" for="toggle-delete-links">Auto-Delete Offending Messages</label>
+                    <p class="setting-desc">Remove the message from the group chat (Requires bot to have Group Admin
+                      rights).</p>
+                  </div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="toggle-delete-links" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <!-- Setting 4: Send Warning Notice -->
+              <div class="setting-item">
+                <div class="setting-info">
+                  <div class="setting-icon bg-purple">
+                    <i data-lucide="alert-triangle"></i>
+                  </div>
+                  <div>
+                    <label class="setting-label" for="toggle-warn-user">Warn Offending Member</label>
+                    <p class="setting-desc">Send a group notice tagging the member when their link is blocked.</p>
+                  </div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="toggle-warn-user" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <!-- Setting 5: Auto-Reply "Hi" -->
+              <div class="setting-item">
+                <div class="setting-info">
+                  <div class="setting-icon bg-blue">
+                    <i data-lucide="message-square-plus"></i>
+                  </div>
+                  <div>
+                    <label class="setting-label" for="toggle-auto-reply-hi">Auto-Reply "Hi"</label>
+                    <p class="setting-desc">Automatically greet back when a group member says "Hi", "Hello", or "Hey".
+                    </p>
+                  </div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="toggle-auto-reply-hi" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <!-- Setting 6: On-Device AI (.ask & .summarize) -->
+              <div class="setting-item">
+                <div class="setting-info">
+                  <div class="setting-icon bg-indigo">
+                    <i data-lucide="sparkles"></i>
+                  </div>
+                  <div>
+                    <label class="setting-label" for="toggle-ai-enabled">On-Device AI Assistant (.ask &
+                      .summarize)</label>
+                    <p class="setting-desc">Enable on-device AI for answering questions (.ask) with multimodal image
+                      recognition and group summaries (.summarize) using Qwen 3.5 models (Zero API Key).</p>
+                  </div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="toggle-ai-enabled">
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <!-- Setting 7: Automatic Chat Removal -->
+              <div class="setting-item">
+                <div class="setting-info">
+                  <div class="setting-icon bg-rose">
+                    <i data-lucide="filter-x"></i>
+                  </div>
+                  <div>
+                    <label class="setting-label" for="toggle-auto-remove-chat">Automatic Chat Removal</label>
+                    <p class="setting-desc">Automatically remove unauthorized media or text types sent by group members.
+                    </p>
+                  </div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="toggle-auto-remove-chat">
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <!-- Automatic Chat Removal Rule Selection Panel -->
+              <div class="auto-remove-panel" id="panel-auto-remove-mode" style="display: none;">
+                <div class="auto-remove-panel-header">
+                  <div class="panel-title-wrap">
+                    <i data-lucide="sliders" style="width: 15px; height: 15px; color: #F43F5E;"></i>
+                    <span>Select Chat Removal Rule</span>
+                  </div>
+                  <span class="panel-subtitle-badge">Non-Admins Only</span>
+                </div>
+                <div class="auto-remove-options-grid">
+                  <label class="auto-remove-option-card active" id="card-remove-image">
+                    <input type="radio" name="auto_remove_mode" id="radio-remove-image" value="remove_image" checked>
+                    <div class="option-card-body">
+                      <div class="option-icon-wrap text-rose">
+                        <i data-lucide="image-off"></i>
+                      </div>
+                      <div class="option-text-wrap">
+                        <span class="option-title">1. Remove image automatically</span>
+                        <span class="option-sub"><strong>Only text allowed.</strong> All photos, images, and stickers
+                          sent by regular members will be auto-deleted.</span>
+                      </div>
+                    </div>
+                  </label>
+
+                  <label class="auto-remove-option-card" id="card-remove-text">
+                    <input type="radio" name="auto_remove_mode" id="radio-remove-text" value="remove_text">
+                    <div class="option-card-body">
+                      <div class="option-icon-wrap text-teal">
+                        <i data-lucide="file-text"></i>
+                      </div>
+                      <div class="option-text-wrap">
+                        <span class="option-title">2. Remove text automatically</span>
+                        <span class="option-sub"><strong>Only image/media allowed.</strong> All text-only messages sent
+                          by regular members will be auto-deleted.</span>
+                      </div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Setting 8: Allow Non-Admins to Access Admin Commands -->
+              <div class="setting-item">
+                <div class="setting-info">
+                  <div class="setting-icon bg-purple">
+                    <i data-lucide="shield-alert"></i>
+                  </div>
+                  <div>
+                    <label class="setting-label" for="toggle-allow-non-admin-commands">Allow Non-Admins to Access Admin
+                      Commands</label>
+                    <p class="setting-desc">Permit regular group members to use specific admin-only commands selected
+                      below.</p>
+                  </div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="toggle-allow-non-admin-commands">
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <!-- Allowed Admin Commands Delegation Selector Panel -->
+              <div class="admin-commands-panel" id="panel-allowed-admin-commands" style="display: none;">
+                <div class="admin-commands-panel-header">
+                  <div class="panel-title-wrap">
+                    <i data-lucide="key-round"></i>
+                    <span>Select Authorized Commands for Regular Members</span>
+                  </div>
+                  <div class="panel-actions">
+                    <button type="button" class="btn-chip" id="btn-select-all-admin-cmds">Select All</button>
+                    <button type="button" class="btn-chip" id="btn-clear-all-admin-cmds">Clear All</button>
+                  </div>
+                </div>
+                <div class="admin-commands-grid">
+                  <label class="admin-cmd-card">
+                    <input type="checkbox" class="admin-cmd-checkbox" value="chatcount">
+                    <div class="cmd-card-body">
+                      <div class="cmd-code-badge">.chatcount</div>
+                      <div class="cmd-info">
+                        <span class="cmd-title">Chat Leaderboard</span>
+                        <span class="cmd-sub">View member message counts & rankings</span>
+                      </div>
+                    </div>
+                  </label>
+                  <label class="admin-cmd-card">
+                    <input type="checkbox" class="admin-cmd-checkbox" value="inactive">
+                    <div class="cmd-card-body">
+                      <div class="cmd-code-badge">.inactive</div>
+                      <div class="cmd-info">
+                        <span class="cmd-title">Inactive Audit</span>
+                        <span class="cmd-sub">List members inactive for > 24 hours</span>
+                      </div>
+                    </div>
+                  </label>
+                  <label class="admin-cmd-card">
+                    <input type="checkbox" class="admin-cmd-checkbox" value="tagall">
+                    <div class="cmd-card-body">
+                      <div class="cmd-code-badge">.tagall</div>
+                      <div class="cmd-info">
+                        <span class="cmd-title">Tag Everyone</span>
+                        <span class="cmd-sub">Mention all members with list</span>
+                      </div>
+                    </div>
+                  </label>
+                  <label class="admin-cmd-card">
+                    <input type="checkbox" class="admin-cmd-checkbox" value="hidetag">
+                    <div class="cmd-card-body">
+                      <div class="cmd-code-badge">.hidetag</div>
+                      <div class="cmd-info">
+                        <span class="cmd-title">Ghost Tag</span>
+                        <span class="cmd-sub">Silent invisible mention of all members</span>
+                      </div>
+                    </div>
+                  </label>
+                  <label class="admin-cmd-card">
+                    <input type="checkbox" class="admin-cmd-checkbox" value="delete">
+                    <div class="cmd-card-body">
+                      <div class="cmd-code-badge">.delete</div>
+                      <div class="cmd-info">
+                        <span class="cmd-title">Delete Messages</span>
+                        <span class="cmd-sub">Reply to any message to delete it (.del)</span>
+                      </div>
+                    </div>
+                  </label>
+                  <label class="admin-cmd-card">
+                    <input type="checkbox" class="admin-cmd-checkbox" value="kick">
+                    <div class="cmd-card-body">
+                      <div class="cmd-code-badge">.kick</div>
+                      <div class="cmd-info">
+                        <span class="cmd-title">Remove Member</span>
+                        <span class="cmd-sub">Kick mentioned member from group</span>
+                      </div>
+                    </div>
+                  </label>
+                  <label class="admin-cmd-card">
+                    <input type="checkbox" class="admin-cmd-checkbox" value="resetchat">
+                    <div class="cmd-card-body">
+                      <div class="cmd-code-badge">.resetchat</div>
+                      <div class="cmd-info">
+                        <span class="cmd-title">Reset Counters</span>
+                        <span class="cmd-sub">Reset group or member message counts</span>
+                      </div>
+                    </div>
+                  </label>
+                  <label class="admin-cmd-card">
+                    <input type="checkbox" class="admin-cmd-checkbox" value="block">
+                    <div class="cmd-card-body">
+                      <div class="cmd-code-badge">.block / .unblock</div>
+                      <div class="cmd-info">
+                        <span class="cmd-title">Block / Unblock</span>
+                        <span class="cmd-sub">Mute and auto-delete member messages</span>
+                      </div>
+                    </div>
+                  </label>
+                  <label class="admin-cmd-card">
+                    <input type="checkbox" class="admin-cmd-checkbox" value="passive_set">
+                    <div class="cmd-card-body">
+                      <div class="cmd-code-badge">.passive set</div>
+                      <div class="cmd-info">
+                        <span class="cmd-title">Set Passive Limit</span>
+                        <span class="cmd-sub">Change passive member count threshold</span>
+                      </div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Setting 9: Passive Member Message Threshold -->
+              <div class="form-group">
+                <label class="form-label" for="input-passive-threshold">Passive Member Chat Threshold (Messages)</label>
+                <div class="input-helper">Members who have sent fewer messages than this threshold will be listed when
+                  anyone types <code>.passive</code> in the group.</div>
+                <div style="display: flex; align-items: center; gap: 12px; max-width: 240px; margin-top: 6px;">
+                  <input type="number" id="input-passive-threshold" class="form-input" min="0" max="10000" value="5">
+                  <span style="color: var(--text-muted); font-size: 13px; white-space: nowrap;">messages</span>
+                </div>
+              </div>
+
+              <!-- Custom Warning Message Template -->
+              <div class="form-group">
+                <label class="form-label" for="custom-warning-text">Custom Link Warning Message Template</label>
+                <div class="input-helper">Use <code>{user}</code> to automatically mention the sender's tag.</div>
+                <textarea id="custom-warning-text" class="form-textarea" rows="2"
+                  placeholder="⚠️ @{user}, posting Instagram or TikTok links is not allowed in this group!"></textarea>
+              </div>
+
+              <!-- Custom Greeting Reply Message Template -->
+              <div class="form-group">
+                <label class="form-label" for="custom-reply-text">Custom "Hi" Auto-Reply Message Template</label>
+                <div class="input-helper">Use <code>{user}</code> to automatically mention the sender's tag.</div>
+                <textarea id="custom-reply-text" class="form-textarea" rows="2" placeholder="Hi {user}! 👋"></textarea>
+              </div>
+
+              <div class="form-footer">
+                <button type="submit" class="btn btn-primary" id="btn-save-settings">
+                  <i data-lucide="save"></i>
+                  <span>Save Moderation Settings</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- TAB 4: LIVE ACTIVITY AUDIT LOGS -->
+        <div class="tab-content" id="tab-logs">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Live Bot Activity Logs</h3>
+                <p class="card-subtitle">Real-time audit stream of message counting, auto-replies, and link moderation
+                </p>
+              </div>
+              <div class="card-actions">
+                <button class="btn btn-secondary btn-sm" id="btn-clear-logs-view">
+                  <i data-lucide="eraser"></i>
+                  <span>Clear View</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table" id="logs-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Group</th>
+                    <th>Member</th>
+                    <th>Action</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody id="logs-tbody">
+                  <tr>
+                    <td colspan="5" class="table-empty">
+                      <i data-lucide="clock"></i>
+                      <p>Listening for live group activity...</p>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: GROUP CHATS STREAM & ADMIN MESSAGING (Authentic WhatsApp Web Interface) -->
+        <div class="tab-content" id="tab-chats">
+          <div class="wa-app-layout">
+            <!-- Left Pane: WhatsApp Chat List & Sidebar -->
+            <aside class="wa-sidebar" id="wa-sidebar">
+              <!-- Sidebar Header -->
+              <div class="wa-sidebar-header">
+                <div class="wa-user-avatar-wrap">
+                  <div class="wa-user-avatar" id="wa-user-avatar" title="WhatsApp Bot Status">
+                    <img src="/assets/capybot_logo.png" alt="Bot Logo" class="wa-avatar-img">
+                  </div>
+                  <div class="wa-user-meta">
+                    <span class="wa-user-title">WhatsApp Chats</span>
+                    <span class="wa-online-pill"><span class="wa-pulse-dot"></span> Real-Time</span>
+                  </div>
+                </div>
+                <div class="wa-header-icons">
+                  <button type="button" class="wa-icon-btn" id="btn-wa-refresh-groups" title="Refresh Group Chats">
+                    <i data-lucide="refresh-cw"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Search & Filter Controls -->
+              <div class="wa-search-section">
+                <div class="wa-search-box">
+                  <i data-lucide="search" class="wa-search-icon"></i>
+                  <input type="text" id="wa-groups-search-input" class="wa-search-input"
+                    placeholder="Search or start new chat" autocomplete="off">
+                  <button type="button" id="btn-wa-clear-group-search" class="wa-clear-btn" style="display:none;"
+                    title="Clear Search">
+                    <i data-lucide="x"></i>
+                  </button>
+                </div>
+                <div class="wa-filter-chips">
+                  <button type="button" class="wa-chip active" data-filter="all">All</button>
+                  <button type="button" class="wa-chip" data-filter="groups">Groups</button>
+                  <button type="button" class="wa-chip" data-filter="admin">Admin</button>
+                </div>
+              </div>
+
+              <!-- WhatsApp Groups List -->
+              <div class="wa-chat-list" id="wa-chat-list">
+                <!-- Populated dynamically: WhatsApp group list items -->
+              </div>
+            </aside>
+
+            <!-- Right Pane: WhatsApp Conversation Canvas -->
+            <main class="wa-main-canvas" id="wa-main-canvas">
+              <!-- WhatsApp Conversation Header -->
+              <header class="wa-chat-header">
+                <div class="wa-chat-header-left">
+                  <button type="button" class="wa-icon-btn wa-mobile-back-btn" id="btn-wa-mobile-back"
+                    title="Back to chats list">
+                    <i data-lucide="arrow-left"></i>
+                  </button>
+                  <div class="wa-group-avatar-header" id="wa-active-group-avatar">
+                    <i data-lucide="users"></i>
+                  </div>
+                  <div class="wa-group-info-meta">
+                    <div class="wa-group-title-row">
+                      <h3 class="wa-group-name" id="chat-current-group-name">Select a Group</h3>
+                      <span class="wa-admin-tag" id="wa-bot-admin-tag" style="display:none;">Admin</span>
+                    </div>
+                    <span class="wa-group-participants" id="chat-current-group-details">Click any group on the left to
+                      start chatting</span>
+                  </div>
+                </div>
+
+                <div class="wa-chat-header-right">
+                  <!-- In-Chat Search -->
+                  <div class="wa-inchat-search-wrap">
+                    <i data-lucide="search" class="wa-search-icon"></i>
+                    <input type="text" id="chat-search-input" class="wa-inchat-search-input"
+                      placeholder="Search in chat..." autocomplete="off">
+                    <button type="button" id="btn-clear-chat-search" class="wa-clear-btn" style="display:none;"
+                      title="Clear message search">
+                      <i data-lucide="x"></i>
+                    </button>
+                  </div>
+                  <span class="wa-message-counter-badge" id="chat-total-badge">0 Messages</span>
+                  <button type="button" class="wa-icon-btn" id="btn-refresh-chat" title="Reload chat feed">
+                    <i data-lucide="refresh-cw"></i>
+                  </button>
+                </div>
+              </header>
+
+              <!-- WhatsApp Messages Stream Canvas with Authentic Wallpaper -->
+              <div class="wa-messages-wallpaper" id="chat-messages-area">
+                <!-- Load Older Messages -->
+                <div class="chat-load-more-wrap" id="chat-load-more-wrap" style="display:none;">
+                  <button type="button" class="wa-pill-btn" id="btn-load-older-messages">
+                    <i data-lucide="history"></i>
+                    <span>Load Older Messages</span>
+                  </button>
+                </div>
+
+                <!-- Security & Encryption Banner -->
+                <div class="wa-encryption-banner" id="wa-encryption-banner">
+                  <i data-lucide="lock" style="width: 11px; height: 11px;"></i>
+                  <span>Messages are synced in real-time with your linked WhatsApp account and stored locally in
+                    SQLite.</span>
+                </div>
+
+                <!-- Empty Chat State -->
+                <div class="wa-empty-canvas" id="chat-empty-state">
+                  <div class="wa-empty-icon-circle">
+                    <i data-lucide="message-square"></i>
+                  </div>
+                  <h4 class="wa-empty-title">WhatsApp Group Live Feed</h4>
+                  <p class="wa-empty-desc">Select a WhatsApp group from the list on the left to view conversations,
+                    filter active discussions, or send admin messages.</p>
+                </div>
+              </div>
+
+              <!-- WhatsApp Bottom Message Composer Bar -->
+              <footer class="wa-input-composer">
+                <form id="chat-send-form" class="wa-composer-form">
+                  <button type="button" class="wa-composer-icon-btn" id="btn-wa-emoji" title="Insert Emoji">
+                    <i data-lucide="smile"></i>
+                  </button>
+                  <button type="button" class="wa-composer-icon-btn" id="btn-wa-attach" title="Attach file or media">
+                    <i data-lucide="paperclip"></i>
+                  </button>
+                  <div class="wa-input-pill-wrap">
+                    <input type="text" id="chat-input-text" class="wa-message-input"
+                      placeholder="Type a message as Admin..." autocomplete="off" aria-label="Type message">
+                  </div>
+                  <button type="submit" class="wa-send-btn" id="btn-send-chat" title="Send message to WhatsApp group">
+                    <i data-lucide="send"></i>
+                  </button>
+                </form>
+              </footer>
+            </main>
+          </div>
+        </div>
+
+        <!-- TAB 5: HELP & BOT USAGE GUIDE -->
+        <div class="tab-content" id="tab-help">
+          <div class="help-container">
+
+            <!-- Capybot V1.2 Release Banner in Help Tab -->
+            <div class="v1-1-banner">
+              <div class="v1-1-header">
+                <div class="v1-1-title-wrap">
+                  <span class="v1-1-badge">Capybot V1.2</span>
+                  <h2 class="v1-1-title">✨ What's New in Capybot V1.2</h2>
+                </div>
+                <span class="v1-1-tagline">⚡ Complete Interactive & Admin Guide</span>
+              </div>
+              <p class="v1-1-subtitle">Discover new group messaging controls, 100-song lyric trivia games, direct phone member additions, expanded conversation icebreakers, and zero false-positive chat moderation.</p>
+              <div class="v1-1-features-grid">
+                <div class="v1-1-feature-item">
+                  <div class="v1-1-feature-icon">🎵</div>
+                  <div class="v1-1-feature-content">
+                    <h4>Song Lyric Guess Game (<code>.guess</code>)</h4>
+                    <p>Database of 100 popular hits (2016–2026) with dice-roll uniqueness and shared leaderboard points.</p>
+                  </div>
+                </div>
+                <div class="v1-1-feature-item">
+                  <div class="v1-1-feature-icon">🔒</div>
+                  <div class="v1-1-feature-content">
+                    <h4>Admin Group Lock (<code>.close</code> / <code>.open</code>)</h4>
+                    <p>Instantly restrict group messaging to admins only via WhatsApp settings, with warning moderation.</p>
+                  </div>
+                </div>
+                <div class="v1-1-feature-item">
+                  <div class="v1-1-feature-icon">➕</div>
+                  <div class="v1-1-feature-content">
+                    <h4>Add Member by Phone (<code>.add</code>)</h4>
+                    <p>Admin feature to add new members directly using their phone number with format validation.</p>
+                  </div>
+                </div>
+                <div class="v1-1-feature-item">
+                  <div class="v1-1-feature-icon">💘</div>
+                  <div class="v1-1-feature-content">
+                    <h4>Chat Match Analysis (<code>.match</code>)</h4>
+                    <p>Analyzes message replies to identify your most frequent chat partner and chemistry score.</p>
+                  </div>
+                </div>
+                <div class="v1-1-feature-item">
+                  <div class="v1-1-feature-icon">🎲</div>
+                  <div class="v1-1-feature-content">
+                    <h4>Gen Z Topic Icebreaker (<code>.topic</code>)</h4>
+                    <p>Rolls a dice to generate fresh, unique, engaging conversation starters and hot takes.</p>
+                  </div>
+                </div>
+                <div class="v1-1-feature-item">
+                  <div class="v1-1-feature-icon">🧩</div>
+                  <div class="v1-1-feature-content">
+                    <h4>AI Word Game (<code>.wordgame</code>)</h4>
+                    <p>Interactive group word-guessing riddles with letter scrambles, hints, and +1 pt rewards.</p>
+                  </div>
+                </div>
+                <div class="v1-1-feature-item">
+                  <div class="v1-1-feature-icon">🏆</div>
+                  <div class="v1-1-feature-content">
+                    <h4>Game Leaderboard (<code>.leaderboard</code>)</h4>
+                    <p>Live rankings tracking accumulated points for all group word masters persistently in SQLite.</p>
+                  </div>
+                </div>
+                <div class="v1-1-feature-item">
+                  <div class="v1-1-feature-icon">🤖</div>
+                  <div class="v1-1-feature-content">
+                    <h4>On-Device AI Assistant (<code>.ask</code>)</h4>
+                    <p>Instant Q&A and multimodal visual recognition powered by <strong>Qwen 3.5</strong> models.</p>
+                  </div>
+                </div>
+                <div class="v1-1-feature-item">
+                  <div class="v1-1-feature-icon">📊</div>
+                  <div class="v1-1-feature-content">
+                    <h4>Group Chat Summarizer (<code>.summarize</code>)</h4>
+                    <p>Analyzes the last 100 group messages into structured executive bullet points & takeaways.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section 1: In-Chat Commands (Admin & Member) -->
+            <div class="card mb-6">
+              <div class="card-header border-b">
+                <div>
+                  <h3 class="card-title"><i data-lucide="terminal"
+                      style="display:inline; width:18px; height:18px; vertical-align:middle; margin-right:6px; color:#60A5FA;"></i>
+                    In-Chat Commands</h3>
+                  <p class="card-subtitle">Commands you can send directly in any connected WhatsApp group</p>
+                </div>
+                <span class="badge badge-info">Interactive Triggers</span>
+              </div>
+              <div class="help-commands-grid">
+
+                <!-- Interactive Command 1: .match -->
+                <div class="command-card card-highlight-pink" style="border-left: 3px solid #EC4899;">
+                  <div class="command-header">
+                    <code class="command-tag">.match</code>
+                    <span class="command-alias">Alias: <code>.cocok</code>, <code>.ship</code></span>
+                  </div>
+                  <h4 class="command-name">💘 Chat Compatibility & Top Reply Match</h4>
+                  <p class="command-desc">Analyzes the group message database to identify which member you reply to or
+                    quote most frequently, calculating a real-time banter & chemistry score.</p>
+                  <div class="command-example">
+                    <span class="example-label">How to use:</span>
+                    <div class="example-box">
+                      <p class="example-step"><strong>Usage:</strong> Type <code class="code-highlight">.match</code> in
+                        any WhatsApp group</p>
+                      <p class="example-result">👉 <em>Bot returns your top interaction partner, reply count, and
+                          chemistry %.</em></p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Interactive Command 2: .topic -->
+                <div class="command-card card-highlight-amber" style="border-left: 3px solid #F59E0B;">
+                  <div class="command-header">
+                    <code class="command-tag">.topic</code>
+                    <span class="command-alias">Alias: <code>.topik</code>, <code>.icebreaker</code></span>
+                  </div>
+                  <h4 class="command-name">🎲 Gen Z Topic & Dice Roll Icebreaker</h4>
+                  <p class="command-desc">Simulates a dice roll to generate fresh, unique, engaging conversation topics
+                    tailored to Gen Z communication style (hot takes, icks, dilemmas, pop culture).</p>
+                  <div class="command-example">
+                    <span class="example-label">How to use:</span>
+                    <div class="example-box">
+                      <p class="example-step"><strong>Usage:</strong> Type <code class="code-highlight">.topic</code> in
+                        the group chat</p>
+                      <p class="example-result">👉 <em>Bot rolls dice and returns a fresh, non-repeating discussion
+                          question.</em></p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Interactive Command 3: .wordgame -->
+                <div class="command-card card-highlight-emerald" style="border-left: 3px solid #10B981;">
+                  <div class="command-header">
+                    <code class="command-tag">.wordgame</code>
+                    <span class="command-alias">Alias: <code>.tebakkata</code>, <code>.game</code></span>
+                  </div>
+                  <h4 class="command-name">🧩 AI Word Guessing Riddle Game</h4>
+                  <p class="command-desc">Starts an interactive word riddle game in the group. Any member can guess by
+                    typing the answer in chat. Correct answers earn <strong>+1 point</strong> on the persistent
+                    leaderboard.</p>
+                  <div class="command-example">
+                    <span class="example-label">How to use:</span>
+                    <div class="example-box">
+                      <p class="example-step"><strong>Start:</strong> Type <code class="code-highlight">.wordgame</code>
+                      </p>
+                      <p class="example-step"><strong>Hint / Give Up:</strong> Type <code
+                          class="code-highlight">.wordgame hint</code> or <code
+                          class="code-highlight">.wordgame giveup</code></p>
+                      <p class="example-result">👉 <em>Bot validates guesses in real-time and awards leaderboard
+                          points!</em></p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Interactive Command: .guess -->
+                <div class="command-card card-highlight-purple" style="border-left: 3px solid #8B5CF6;">
+                  <div class="command-header">
+                    <code class="command-tag">.guess</code>
+                    <span class="command-alias">Alias: <code>.tebaklagu</code>, <code>.songgame</code></span>
+                  </div>
+                  <h4 class="command-name">🎵 Song Lyric Guessing Game (2016–2026 Hits)</h4>
+                  <p class="command-desc">Interactive song guessing game featuring a database of 100 popular chart-topping hits (2016–2026). The bot rolls a 100-sided dice to select a unique song, sends a lyric excerpt, and awards <strong>+1 point</strong> on the shared leaderboard for correct guesses.</p>
+                  <div class="command-example">
+                    <span class="example-label">How to use:</span>
+                    <div class="example-box">
+                      <p class="example-step"><strong>Start:</strong> Type <code class="code-highlight">.guess</code></p>
+                      <p class="example-step"><strong>Guess:</strong> Reply to the bot's message or type the song title in chat</p>
+                      <p class="example-step"><strong>Hint / Give Up:</strong> Type <code class="code-highlight">.guess hint</code> or <code class="code-highlight">.guess giveup</code></p>
+                      <p class="example-result">👉 <em>Bot evaluates guesses in real-time and awards +1 point on the leaderboard!</em></p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Interactive Command 4: .leaderboard -->
+                <div class="command-card card-highlight-cyan" style="border-left: 3px solid #06B6D4;">
+                  <div class="command-header">
+                    <code class="command-tag">.leaderboard</code>
+                    <span class="command-alias">Alias: <code>.lb</code>, <code>.score</code></span>
+                  </div>
+                  <h4 class="command-name">🏆 Word Game Leaderboard & Rankings</h4>
+                  <p class="command-desc">Displays the top-ranked group members with their accumulated word game points,
+                    medal emojis, and your personal score.</p>
+                  <div class="command-example">
+                    <span class="example-label">How to use:</span>
+                    <div class="example-box">
+                      <p class="example-step"><strong>Usage:</strong> Type <code
+                          class="code-highlight">.leaderboard</code> in any group</p>
+                      <p class="example-result">👉 <em>Bot outputs ranked medals (🥇 🥈 🥉) and total point tally.</em>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- AI Command 1: .ask -->
+                <div class="command-card card-highlight-indigo">
+                  <div class="command-header">
+                    <code class="command-tag">.ask [question]</code>
+                    <span class="command-alias">Alias: <code>.ai</code>, <code>.tanya</code></span>
+                  </div>
+                  <h4 class="command-name">🤖 AI Assistant & Multimodal Image Recognition</h4>
+                  <p class="command-desc">Ask the on-device AI anything without API keys! Powered by <strong>Qwen
+                      3.5</strong> foundation models for fast text Q&A and multimodal image recognition.</p>
+                  <div class="command-example">
+                    <span class="example-label">How to use:</span>
+                    <div class="example-box">
+                      <p class="example-step"><strong>Text Q&A:</strong> <code
+                          class="code-highlight">.ask What is quantum computing?</code></p>
+                      <p class="example-step"><strong>Image Analysis:</strong> Reply to or send a photo with <code
+                          class="code-highlight">.ask What is in this picture?</code></p>
+                      <p class="example-result">👉 <em>Bot inspects image/question on-device and replies instantly.</em>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- AI Command 2: .summarize -->
+                <div class="command-card card-highlight-purple">
+                  <div class="command-header">
+                    <code class="command-tag">.summarize</code>
+                    <span class="command-alias">Alias: <code>.summary</code>, <code>.recap</code></span>
+                  </div>
+                  <h4 class="command-name">📊 Group Chat Summarizer (Last 100 Msgs)</h4>
+                  <p class="command-desc">Automatically analyzes the last 100 group chat messages from the SQLite
+                    database and generates a structured summary with key topics and decisions.</p>
+                  <div class="command-example">
+                    <span class="example-label">How to use:</span>
+                    <div class="example-box">
+                      <p class="example-step"><strong>Usage:</strong> Type <code
+                          class="code-highlight">.summarize</code> in any WhatsApp group</p>
+                      <p class="example-result">👉 <em>Bot outputs structured recap with key points and active
+                          members.</em></p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Command 1: .sticker -->
+                <div class="command-card">
+                  <div class="command-header">
+                    <code class="command-tag">.sticker</code>
+                    <span class="command-alias">Alias: <code>.s</code>, <code>.stiker</code></span>
+                  </div>
+                  <h4 class="command-name">Convert Image to WhatsApp Sticker</h4>
+                  <p class="command-desc">Available to <strong>all group members</strong>. Reply to any picture with
+                    <code>.sticker</code> (or send a photo with <code>.sticker</code> caption). The bot converts it into
+                    a 512x512 transparent WebP sticker quoting the sender.
+                  </p>
+                  <div class="command-example">
+                    <span class="example-label">How to use:</span>
+                    <div class="example-box">
+                      <p class="example-step"><strong>Option A:</strong> Reply to any image with <code
+                          class="code-highlight">.sticker</code></p>
+                      <p class="example-step"><strong>Option B:</strong> Send a photo with caption <code
+                          class="code-highlight">.s</code></p>
+                      <p class="example-result">👉 <em>Bot immediately sends back the custom WhatsApp sticker.</em></p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Command 2: .tagall -->
+                <div class="command-card">
+                  <div class="command-header">
+                    <code class="command-tag">.tagall [announcement]</code>
+                    <span class="command-alias">Group Admins Only</span>
+                  </div>
+                  <h4 class="command-name">Tag Every Group Member</h4>
+                  <p class="command-desc">Broadcasts a formatted announcement with a numbered list tagging every group
+                    member directly in the message body. The bot automatically cleans up the trigger message.</p>
+                  <div class="command-example">
+                    <span class="example-label">How to use:</span>
+                    <div class="example-box">
+                      <p class="example-step"><strong>Usage:</strong> Type <code
+                          class="code-highlight">.tagall Urgent team meeting starting now!</code></p>
+                      <p class="example-result">👉 <em>Bot posts announcement listing all @members.</em></p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Command 3: .delete -->
+                <div class="command-card">
+                  <div class="command-header">
+                    <code class="command-tag">.delete</code>
+                    <span class="command-alias">Alias: <code>.del</code> (Admin Only)</span>
+                  </div>
+                  <h4 class="command-name">Delete a Member's Message</h4>
+                  <p class="command-desc">Reply to any message sent by a group member with <code>.delete</code>. The bot
+                    will instantly delete the member's message and clean up the command trigger.</p>
+                  <div class="command-example">
+                    <span class="example-label">How to use:</span>
+                    <div class="example-box">
+                      <p class="example-step">1. Swipe right / long press on the member's message to
+                        <strong>Reply</strong>.
+                      </p>
+                      <p class="example-step">2. Type <code class="code-highlight">.delete</code> and send.</p>
+                      <p class="example-result">👉 <em>Bot deletes the replied message and the command.</em></p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Command 4: .kick -->
+                <div class="command-card">
+                  <div class="command-header">
+                    <code class="command-tag">.kick @user</code>
+                    <span class="command-alias">Group Admins Only</span>
+                  </div>
+                  <h4 class="command-name">Remove a Member from Group</h4>
+                  <p class="command-desc">Remove a disruptive member from the group. You can mention them directly or
+                    reply to one of their messages with <code>.kick</code>. Fellow admins and bot are protected.</p>
+                  <div class="command-example">
+                    <span class="example-label">How to use:</span>
+                    <div class="example-box">
+                      <p class="example-step"><strong>Option A:</strong> Type <code
+                          class="code-highlight">.kick @user</code> and send.</p>
+                      <p class="example-step"><strong>Option B:</strong> Reply to their message with <code
+                          class="code-highlight">.kick</code>.</p>
+                      <p class="example-result">👉 <em>Bot kicks the member from the group.</em></p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Command 5: .hidetag -->
+                <div class="command-card">
+                  <div class="command-header">
+                    <code class="command-tag">.hidetag [message]</code>
+                    <span class="command-alias">Group Admins Only</span>
+                  </div>
+                  <h4 class="command-name">Broadcast & Tag All Silently</h4>
+                  <p class="command-desc">Resend an announcement from the bot account that notifies every single member
+                    in the group without cluttering the chat with visible tags.</p>
+                  <div class="command-example">
+                    <span class="example-label">How to use:</span>
+                    <div class="example-box">
+                      <p class="example-step"><strong>Option A:</strong> Type <code
+                          class="code-highlight">.hidetag Meeting starts at 5 PM!</code></p>
+                      <p class="example-step"><strong>Option B:</strong> Reply to any text message with <code
+                          class="code-highlight">.hidetag</code>.</p>
+                      <p class="example-result">👉 <em>Bot resends message tagging everyone.</em></p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Command 6: .inactive -->
+                <div class="command-card">
+                  <div class="command-header">
+                    <code class="command-tag">.inactive</code>
+                    <span class="command-alias">Inactive > 1 Day</span>
+                  </div>
+                  <h4 class="command-name">List Inactive Group Members</h4>
+                  <p class="command-desc">Generates a detailed report of all members who have not sent a message in the
+                    group for more than 1 day (24h) or have never chatted.</p>
+                  <div class="command-example">
+                    <span class="example-label">How to use:</span>
+                    <div class="example-box">
+                      <p class="example-step"><strong>Usage:</strong> Type <code class="code-highlight">.inactive</code>
+                        in the WhatsApp group.</p>
+                      <p class="example-result">👉 <em>Bot replies with numbered list of inactive members and last
+                          active times.</em></p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Command 7: .chatcount -->
+                <div class="command-card">
+                  <div class="command-header">
+                    <code class="command-tag">.chatcount</code>
+                    <span class="command-alias">Group Admins (Delegable)</span>
+                  </div>
+                  <h4 class="command-name">Show Member Chat Counts</h4>
+                  <p class="command-desc">Displays a real-time leaderboard showing the total messages sent by group
+                    members. <em>Admin-only by default; group admins can allow member access in Security & Moderation
+                      Settings.</em></p>
+                  <div class="command-example">
+                    <span class="example-label">How to use:</span>
+                    <div class="example-box">
+                      <p class="example-step"><strong>Usage:</strong> Type <code
+                          class="code-highlight">.chatcount</code> in the WhatsApp group.</p>
+                      <p class="example-result">👉 <em>Bot replies with ranked chat counts (🥇 1st, 🥈 2nd, 🥉
+                          3rd...).</em></p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Command 8: .resetchat -->
+                <div class="command-card">
+                  <div class="command-header">
+                    <code class="command-tag">.resetchat [@user]</code>
+                    <span class="command-alias">Group Admins Only</span>
+                  </div>
+                  <h4 class="command-name">Reset Chat Message Counts</h4>
+                  <p class="command-desc">Reset the recorded chat count back to 0 for all members in the group, or
+                    target a single member by mentioning them.</p>
+                  <div class="command-example">
+                    <span class="example-label">How to use:</span>
+                    <div class="example-box">
+                      <p class="example-step"><strong>Option A (All):</strong> Type <code
+                          class="code-highlight">.resetchat</code></p>
+                      <p class="example-step"><strong>Option B (Single):</strong> Type <code
+                          class="code-highlight">.resetchat @user</code></p>
+                      <p class="example-result">👉 <em>Bot resets chat count to 0 and syncs dashboard.</em></p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Command 9: .block -->
+                <div class="command-card">
+                  <div class="command-header">
+                    <code class="command-tag">.block @user</code>
+                    <span class="command-alias">Group Admins Only</span>
+                  </div>
+                  <h4 class="command-name">Block Member (Auto-Delete Messages)</h4>
+                  <p class="command-desc">Blocks a member in the group. Whenever a blocked member sends any message,
+                    CapyBot will automatically delete it immediately.</p>
+                  <div class="command-example">
+                    <span class="example-label">How to use:</span>
+                    <div class="example-box">
+                      <p class="example-step"><strong>Option A:</strong> Type <code
+                          class="code-highlight">.block @user</code></p>
+                      <p class="example-step"><strong>Option B:</strong> Reply to a member's message with <code
+                          class="code-highlight">.block</code></p>
+                      <p class="example-step"><strong>Option C (List):</strong> Type <code
+                          class="code-highlight">.block</code> to view all blocked members</p>
+                      <p class="example-result">👉 <em>Bot blocks user and auto-deletes any future messages they
+                          post.</em></p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Command 10: .unblock -->
+                <div class="command-card">
+                  <div class="command-header">
+                    <code class="command-tag">.unblock @user</code>
+                    <span class="command-alias">Group Admins Only</span>
+                  </div>
+                  <h4 class="command-name">Unblock Member</h4>
+                  <p class="command-desc">Unblocks a previously blocked member so their messages will no longer be
+                    deleted by the bot.</p>
+                  <div class="command-example">
+                    <span class="example-label">How to use:</span>
+                    <div class="example-box">
+                      <p class="example-step"><strong>Usage:</strong> Type <code
+                          class="code-highlight">.unblock @user</code></p>
+                      <p class="example-result">👉 <em>Bot removes member from block list and restores normal
+                          messaging.</em></p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Command 11: .blockeduser -->
+                <div class="command-card">
+                  <div class="command-header">
+                    <code class="command-tag">.blockeduser</code>
+                    <span class="command-alias">Alias: <code>.blocked</code>, <code>.listblock</code></span>
+                  </div>
+                  <h4 class="command-name">List Blocked Group Members</h4>
+                  <p class="command-desc">Displays a list of all members currently blocked in the group whose messages
+                    are auto-deleted.</p>
+                  <div class="command-example">
+                    <span class="example-label">How to use:</span>
+                    <div class="example-box">
+                      <p class="example-step"><strong>Usage:</strong> Type <code
+                          class="code-highlight">.blockeduser</code> in the WhatsApp group.</p>
+                      <p class="example-result">👉 <em>Bot posts list of all blocked members with tags.</em></p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Command 12: .passive -->
+                <div class="command-card">
+                  <div class="command-header">
+                    <code class="command-tag">.passive</code>
+                    <span class="command-alias">Admin: <code>.passive set [num]</code></span>
+                  </div>
+                  <h4 class="command-name">List Passive Group Members</h4>
+                  <p class="command-desc">Shows all members in the group who have sent fewer messages than the
+                    configured threshold (default: 5 msgs). Admins can update the threshold using
+                    <code>.passive set [number]</code>.</p>
+                  <div class="command-example">
+                    <span class="example-label">How to use:</span>
+                    <div class="example-box">
+                      <p class="example-step"><strong>Option A (View):</strong> Type <code
+                          class="code-highlight">.passive</code></p>
+                      <p class="example-step"><strong>Option B (Set Threshold):</strong> Type <code
+                          class="code-highlight">.passive set 10</code> (Admins)</p>
+                      <p class="example-result">👉 <em>Bot lists passive members with their message counts and
+                          tags.</em></p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Command 13: .close & .open -->
+                <div class="command-card card-highlight-rose" style="border-left: 3px solid #F43F5E;">
+                  <div class="command-header">
+                    <code class="command-tag">.close</code> / <code class="command-tag">.open</code>
+                    <span class="command-alias">Group Admins Only</span>
+                  </div>
+                  <h4 class="command-name">Restrict Group Messaging to Admins Only</h4>
+                  <p class="command-desc">Changes WhatsApp group settings so that only administrators can send messages. If regular members attempt to send messages, the bot automatically deletes them and issues a warning. Use <code>.open</code> to unlock messaging for all members.</p>
+                  <div class="command-example">
+                    <span class="example-label">How to use:</span>
+                    <div class="example-box">
+                      <p class="example-step"><strong>Lock:</strong> Type <code class="code-highlight">.close</code> (Admins only)</p>
+                      <p class="example-step"><strong>Unlock:</strong> Type <code class="code-highlight">.open</code> (All members can send)</p>
+                      <p class="example-result">👉 <em>Bot updates group permissions and confirms via chat announcement.</em></p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Command 14: .add [phone number] -->
+                <div class="command-card card-highlight-emerald" style="border-left: 3px solid #10B981;">
+                  <div class="command-header">
+                    <code class="command-tag">.add [phone]</code>
+                    <span class="command-alias">Group Admins Only</span>
+                  </div>
+                  <h4 class="command-name">Add Member by Phone Number</h4>
+                  <p class="command-desc">Allows group administrators to add a new member by entering their phone number with country/area code (e.g., <code>6281xxxxxxx</code>). Includes phone format validation and clear status reporting.</p>
+                  <div class="command-example">
+                    <span class="example-label">How to use:</span>
+                    <div class="example-box">
+                      <p class="example-step"><strong>Usage:</strong> Type <code class="code-highlight">.add 628123456789</code></p>
+                      <p class="example-result">👉 <em>Bot validates number and adds participant to group directly.</em></p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Command 13: .peek -->
+                <div class="command-card card-highlight-amber">
+                  <div class="command-header">
+                    <code class="command-tag">.peek</code>
+                    <span class="command-alias">Alias: <code>.rvo</code>, <code>.viewonce</code></span>
+                  </div>
+                  <h4 class="command-name">👁️ Reveal View Once ("One Time View") Media</h4>
+                  <p class="command-desc">Unlock and resend any WhatsApp View Once photo or video permanently to the
+                    chat.</p>
+                  <div class="command-example">
+                    <span class="example-label">How to use:</span>
+                    <div class="example-box">
+                      <p class="example-step"><strong>Usage:</strong> Reply to any View Once image or video with <code
+                          class="code-highlight">.peek</code></p>
+                      <p class="example-result">👉 <em>Bot decrypts and resends the media as a permanent
+                          image/video.</em></p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Command 14: .ping -->
+                <div class="command-card">
+                  <div class="command-header">
+                    <code class="command-tag">.ping</code>
+                    <span class="command-alias">Alias: <code>.speed</code></span>
+                  </div>
+                  <h4 class="command-name">Check Bot Latency & Ping</h4>
+                  <p class="command-desc">Measures the bot's real-time response latency (ms) and server memory usage.
+                  </p>
+                  <div class="command-example">
+                    <span class="example-label">How to use:</span>
+                    <div class="example-box">
+                      <p class="example-step"><strong>Usage:</strong> Type <code class="code-highlight">.ping</code> in
+                        any chat.</p>
+                      <p class="example-result">👉 <em>Bot replies with response speed in milliseconds (ms).</em></p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Command 15: .runtime -->
+                <div class="command-card">
+                  <div class="command-header">
+                    <code class="command-tag">.runtime</code>
+                    <span class="command-alias">Alias: <code>.uptime</code></span>
+                  </div>
+                  <h4 class="command-name">View Bot Uptime & Telemetry</h4>
+                  <p class="command-desc">Displays the total continuous runtime of the bot server along with memory and
+                    platform details.</p>
+                  <div class="command-example">
+                    <span class="example-label">How to use:</span>
+                    <div class="example-box">
+                      <p class="example-step"><strong>Usage:</strong> Type <code class="code-highlight">.runtime</code>
+                        in any chat.</p>
+                      <p class="example-result">👉 <em>Bot outputs total uptime (days, hours, minutes, seconds).</em>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Command 16: .help -->
+                <div class="command-card">
+                  <div class="command-header">
+                    <code class="command-tag">.help</code>
+                    <span class="command-alias">Alias: <code>.menu</code>, <code>.commands</code>,
+                      <code>.cmd</code></span>
+                  </div>
+                  <h4 class="command-name">Bot Commands Menu & Help</h4>
+                  <p class="command-desc">Displays a complete menu of all available member commands, admin controls, and
+                    active moderation features.</p>
+                  <div class="command-example">
+                    <span class="example-label">How to use:</span>
+                    <div class="example-box">
+                      <p class="example-step"><strong>Usage:</strong> Type <code class="code-highlight">.help</code> in
+                        any WhatsApp group.</p>
+                      <p class="example-result">👉 <em>Bot replies with the full interactive command list.</em></p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Command 17: .about -->
+                <div class="command-card card-highlight-cyan">
+                  <div class="command-header">
+                    <code class="command-tag">.about</code>
+                    <span class="command-alias">Alias: <code>.info</code>, <code>.version</code>, <code>.v</code></span>
+                  </div>
+                  <h4 class="command-name">🏷️ Capybot V1.1 Version & Release Info</h4>
+                  <p class="command-desc">Displays the active bot release version, AI engine status, system uptime, and
+                    full list of latest V1.1 features directly in chat.</p>
+                  <div class="command-example">
+                    <span class="example-label">How to use:</span>
+                    <div class="example-box">
+                      <p class="example-step"><strong>Usage:</strong> Type <code class="code-highlight">.about</code> in
+                        any chat or group.</p>
+                      <p class="example-result">👉 <em>Bot outputs version details, feature changelog, and dashboard
+                          link.</em></p>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Section 2: Automated Group Moderation & Bot Rules -->
+            <div class="card mb-6">
+              <div class="card-header border-b">
+                <div>
+                  <h3 class="card-title"><i data-lucide="cpu"
+                      style="display:inline; width:18px; height:18px; vertical-align:middle; margin-right:6px; color:#A78BFA;"></i>
+                    Automated Bot Capabilities</h3>
+                  <p class="card-subtitle">Automatic 24/7 moderation and engagement features running in your group</p>
+                </div>
+              </div>
+              <div class="features-list-grid">
+
+                <div class="feature-guide-item">
+                  <div class="feature-icon-wrap bg-pink">
+                    <i data-lucide="shield-alert"></i>
+                  </div>
+                  <div class="feature-guide-content">
+                    <h4>Instagram & TikTok Link Blocker</h4>
+                    <p>Detects links from Instagram (posts, reels, stories, profiles) and TikTok (videos, shortlinks).
+                      If a <strong>non-admin</strong> posts a link, the bot deletes it and issues a warning notice.
+                      <strong>Group Admins are exempt</strong>.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="feature-guide-item">
+                  <div class="feature-icon-wrap bg-blue">
+                    <i data-lucide="message-square-plus"></i>
+                  </div>
+                  <div class="feature-guide-content">
+                    <h4>"Hi" Auto-Reply</h4>
+                    <p>When a member says <em>"Hi"</em>, <em>"Hello"</em>, or <em>"Hey"</em>, the bot replies instantly
+                      with a friendly greeting tagging the member. Custom reply templates can be set in the <strong>Link
+                        Moderation</strong> tab.</p>
+                  </div>
+                </div>
+
+                <div class="feature-guide-item">
+                  <div class="feature-icon-wrap bg-purple">
+                    <i data-lucide="bar-chart-3"></i>
+                  </div>
+                  <div class="feature-guide-content">
+                    <h4>Real-Time Member Chat Counter</h4>
+                    <p>Every message sent in the group is counted and persisted in the local SQLite database. You can
+                      view the full Leaderboard on the <strong>Dashboard</strong>, filter by member, and clear counts
+                      individually or reset the whole group.</p>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Section 3: Web Dashboard Features & Past Messages -->
+            <div class="card mb-6">
+              <div class="card-header border-b">
+                <div>
+                  <h3 class="card-title"><i data-lucide="layout"
+                      style="display:inline; width:18px; height:18px; vertical-align:middle; margin-right:6px; color:#3B82F6;"></i>
+                    Web Dashboard & Chat Tools</h3>
+                  <p class="card-subtitle">Manage your WhatsApp groups effortlessly from your browser</p>
+                </div>
+              </div>
+              <div class="features-list-grid">
+
+                <div class="feature-guide-item">
+                  <div class="feature-icon-wrap bg-blue">
+                    <i data-lucide="messages-square"></i>
+                  </div>
+                  <div class="feature-guide-content">
+                    <h4>Live Group Chats & Admin Messenger</h4>
+                    <p>View real-time conversations from any WhatsApp group and type directly in the composer bar to
+                      send messages into the group as the admin account.</p>
+                  </div>
+                </div>
+
+                <div class="feature-guide-item">
+                  <div class="feature-icon-wrap bg-purple">
+                    <i data-lucide="history"></i>
+                  </div>
+                  <div class="feature-guide-content">
+                    <h4>Retrieve Past Messages & Search</h4>
+                    <p>Click <strong>"Load Older Messages"</strong> to scroll through historical chat archives. Use the
+                      <strong>Search Bar</strong> to instantly find past messages by keyword or member name with
+                      highlighted text.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="feature-guide-item">
+                  <div class="feature-icon-wrap bg-emerald">
+                    <i data-lucide="zap"></i>
+                  </div>
+                  <div class="feature-guide-content">
+                    <h4>Safe 15s Auto-Sync (Zero Ban Risk)</h4>
+                    <p>The dashboard updates instantly via WebSockets and performs safe local database heartbeat
+                      polling. <strong>Zero requests are sent to WhatsApp servers</strong> during polling, ensuring your
+                      account is completely safe from rate-limits or bans.</p>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Section 4: Multi-User, Multi-Device & Theme Customization (New!) -->
+            <div class="card mb-6">
+              <div class="card-header border-b">
+                <div>
+                  <h3 class="card-title"><i data-lucide="users-2"
+                      style="display:inline; width:18px; height:18px; vertical-align:middle; margin-right:6px; color:#10B981;"></i>
+                    Multi-User & Multi-Device Architecture</h3>
+                  <p class="card-subtitle">Manage isolated WhatsApp sessions, multiple devices, and custom dashboard
+                    themes</p>
+                </div>
+              </div>
+              <div class="features-list-grid">
+
+                <div class="feature-guide-item">
+                  <div class="feature-icon-wrap bg-emerald">
+                    <i data-lucide="key-round"></i>
+                  </div>
+                  <div class="feature-guide-content">
+                    <h4>Phone + Password Authentication</h4>
+                    <p>Create an account with your phone number and secure password. Link settings, group statistics,
+                      and live chats are completely isolated per user.</p>
+                  </div>
+                </div>
+
+                <div class="feature-guide-item">
+                  <div class="feature-icon-wrap bg-blue">
+                    <i data-lucide="smartphone-nfc"></i>
+                  </div>
+                  <div class="feature-guide-content">
+                    <h4>Zero QR Re-Scanning on Relogin</h4>
+                    <p>When you log out and log back in (from any device), your WhatsApp session remains active on disk.
+                      <strong>You never have to scan the QR code again</strong> unless you choose to unlink.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="feature-guide-item">
+                  <div class="feature-icon-wrap bg-amber">
+                    <i data-lucide="sun-medium"></i>
+                  </div>
+                  <div class="feature-guide-content">
+                    <h4>Light & Dark Mode UI</h4>
+                    <p>Click the <strong>Sun / Moon</strong> toggle button in the top header to switch between Dark Mode
+                      and Light Mode. Your theme preference is remembered automatically.</p>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Section 5: Essential Setup & Permissions Checklist -->
+            <div class="card">
+              <div class="card-header border-b">
+                <div>
+                  <h3 class="card-title"><i data-lucide="check-circle-2"
+                      style="display:inline; width:18px; height:18px; vertical-align:middle; margin-right:6px; color:#34D399;"></i>
+                    Group Setup & Admin Rights Checklist</h3>
+                  <p class="card-subtitle">Follow these quick steps to ensure the bot functions with full privileges</p>
+                </div>
+              </div>
+              <div class="setup-steps-list">
+                <div class="setup-step">
+                  <div class="step-number">1</div>
+                  <div class="step-info">
+                    <h4>Pair WhatsApp Account</h4>
+                    <p>Log in with your Phone Number & Password. If pairing for the first time, scan the QR code using
+                      your phone (<strong>WhatsApp > Linked Devices > Link a Device</strong>).</p>
+                  </div>
+                </div>
+                <div class="setup-step">
+                  <div class="step-number">2</div>
+                  <div class="step-info">
+                    <h4>Add Bot to Your WhatsApp Group</h4>
+                    <p>Invite the bot's connected phone number into your target WhatsApp group.</p>
+                  </div>
+                </div>
+                <div class="setup-step">
+                  <div class="step-number">3</div>
+                  <div class="step-info">
+                    <h4>Promote Bot to Group Admin</h4>
+                    <p>In WhatsApp group info, tap the bot's contact and select <strong>"Make Group Admin"</strong>.
+                      This allows the bot to delete member messages (<code>.delete</code> & link blocker) and kick
+                      members (<code>.kick</code>).</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- USER PROFILE & SETTINGS POPUP MODAL -->
+  <div class="modal-backdrop" id="user-settings-modal">
+    <div class="modal-card user-settings-card">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="brand-logo sm"
+            style="width: 38px; height: 38px; flex-shrink: 0; box-shadow: 0 0 14px rgba(45, 212, 191, 0.35);">
+            <img src="/assets/capybot_logo.png" alt="CapyBot Mascot Logo" class="brand-logo-img">
+          </div>
+          <div>
+            <h3 class="modal-title">Account & Preferences</h3>
+            <p class="modal-subtitle">Manage preferences, WhatsApp pairing & session</p>
+          </div>
+        </div>
+        <button class="modal-close" id="btn-close-user-settings">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- User Summary Profile Card -->
+        <div class="popup-user-card">
+          <div class="avatar lg user-avatar" id="popup-user-avatar">
+            <i data-lucide="user-check"></i>
+          </div>
+          <div class="popup-user-info">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <h4 class="popup-user-name" id="popup-display-name">Admin Account</h4>
+              <span class="user-role-badge">Admin</span>
+            </div>
+            <p class="popup-user-phone" id="popup-phone-number">+60 12-345 6789</p>
+            <span class="popup-account-created" id="popup-account-created">Registered Account</span>
+          </div>
+        </div>
+
+        <!-- Preferences & Controls List -->
+        <div class="popup-settings-list">
+          <!-- 1. Connection Status -->
+          <div class="popup-setting-row">
+            <div class="popup-row-left">
+              <div class="setting-icon-sm bg-blue">
+                <i data-lucide="radio"></i>
+              </div>
+              <div>
+                <span class="popup-row-title">WhatsApp Bot Status</span>
+                <p class="popup-row-desc" id="popup-bot-status-desc">Disconnected</p>
+              </div>
+            </div>
+            <div class="connection-badge status-disconnected" id="popup-status-badge">
+              <span class="pulse-dot"></span>
+              <span id="popup-status-label">Disconnected</span>
+            </div>
+          </div>
+
+          <!-- 2. Dark / Light Mode Switch -->
+          <div class="popup-setting-row">
+            <div class="popup-row-left">
+              <div class="setting-icon-sm bg-amber">
+                <i data-lucide="sun-medium" id="popup-theme-icon"></i>
+              </div>
+              <div>
+                <span class="popup-row-title">Appearance Mode</span>
+                <p class="popup-row-desc" id="popup-theme-desc">Current: Dark Mode</p>
+              </div>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="btn-popup-theme-toggle" title="Toggle Theme">
+              <i data-lucide="sun" id="popup-btn-theme-icon"></i>
+              <span id="popup-btn-theme-text">Switch to Light</span>
+            </button>
+          </div>
+
+          <!-- 3. WhatsApp Pairing & Unlink Device -->
+          <div class="popup-setting-row">
+            <div class="popup-row-left">
+              <div class="setting-icon-sm bg-purple">
+                <i data-lucide="smartphone"></i>
+              </div>
+              <div>
+                <span class="popup-row-title">WhatsApp Linked Device</span>
+                <p class="popup-row-desc">Pair device with QR or switch phone number</p>
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-secondary btn-sm" id="btn-popup-open-qr" title="Scan QR Code">
+                <i data-lucide="qr-code"></i>
+                <span>Scan QR</span>
+              </button>
+              <button class="btn btn-secondary btn-sm text-danger" id="btn-popup-unlink" title="Unlink WhatsApp">
+                <i data-lucide="unlink-2"></i>
+                <span>Unlink</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Master AI Toggle Row -->
+          <div class="popup-setting-row"
+            style="background: rgba(45, 212, 191, 0.04); border: 1px solid rgba(45, 212, 191, 0.15); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 12px;">
+            <div class="popup-row-left">
+              <div class="setting-icon-sm bg-indigo">
+                <i data-lucide="sparkles"></i>
+              </div>
+              <div>
+                <span class="popup-row-title">Enable On-Device AI Features</span>
+                <p class="popup-row-desc">Master switch for Qwen 3.5 AI, .ask, .summarize, and web chatbot</p>
+              </div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggle-user-ai-master">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- 4. Active AI Model & Engine Card -->
+          <div class="popup-ai-model-card">
+            <div class="popup-ai-model-top">
+              <div class="popup-ai-model-info">
+                <div class="setting-icon-sm bg-teal">
+                  <i data-lucide="cpu"></i>
+                </div>
+                <div class="popup-ai-model-headings">
+                  <div class="popup-ai-title-row">
+                    <span class="popup-ai-card-title">Active AI Model</span>
+                    <div class="connection-badge status-available" id="popup-ai-status-badge">
+                      <span class="pulse-dot"></span>
+                      <span id="popup-ai-status-label">Available</span>
+                    </div>
+                  </div>
+                  <p class="popup-ai-card-desc" id="popup-ai-model-desc">Qwen 3.5 0.8B Q4 • 4,096 tokens context</p>
+                </div>
+              </div>
+              <button type="button" class="btn btn-secondary btn-xs" id="btn-popup-manage-models"
+                title="Open full AI Models catalog and downloads">
+                <i data-lucide="sparkles" style="width: 12px; height: 12px; color: #2DD4BF;"></i>
+                <span>Manage Models</span>
+              </button>
+            </div>
+
+            <div class="popup-ai-model-bottom">
+              <label for="popup-model-select" class="popup-ai-field-label">Active Model Engine:</label>
+              <div class="popup-ai-select-wrap">
+                <select id="popup-model-select" class="custom-select popup-ai-select-input"
+                  aria-label="Select Active AI Model">
+                  <option value="qwen-3.5-0.8b-q4">Qwen 3.5 0.8B Q4 (Ultra Fast)</option>
+                  <option value="qwen-3.5-0.8b-q8">Qwen 3.5 0.8B Q8 (High Precision)</option>
+                  <option value="qwen-3.5-2b-q4">Qwen 3.5 2B Q4 (Balanced)</option>
+                  <option value="qwen-3.5-2b-q8">Qwen 3.5 2B Q8 (Advanced Reasoning)</option>
+                  <option value="qwen-3.5-4b-q4">Qwen 3.5 4B Q4 (Expert 4-bit)</option>
+                  <option value="qwen-3.5-4b-q8">Qwen 3.5 4B Q8 (Maximum Intelligence)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. System Information & Resource Diagnostics Card -->
+          <div class="popup-system-card">
+            <div class="popup-system-header">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="activity" class="text-teal" style="width: 16px; height: 16px;"></i>
+                <span class="popup-system-title">System Information & Resources</span>
+              </div>
+              <button type="button" class="btn-refresh-sys-info" id="btn-refresh-popup-sys"
+                title="Refresh System Telemetry">
+                <i data-lucide="refresh-cw" style="width: 12px; height: 12px;"></i>
+              </button>
+            </div>
+
+            <div class="popup-system-grid">
+              <!-- Metric 1: Total Space Used (AI Models & App) -->
+              <div class="popup-metric-box">
+                <div class="popup-metric-label">
+                  <i data-lucide="hard-drive"></i>
+                  <span>Space Used</span>
+                </div>
+                <div class="popup-metric-val" id="sys-total-space-val">Loading...</div>
+                <span class="popup-metric-sub" id="sys-space-breakdown-sub">Models & App</span>
+              </div>
+
+              <!-- Metric 2: Free Storage Space -->
+              <div class="popup-metric-box">
+                <div class="popup-metric-label">
+                  <i data-lucide="database"></i>
+                  <span>Free Storage</span>
+                </div>
+                <div class="popup-metric-val text-emerald" id="sys-free-storage-val">Loading...</div>
+                <span class="popup-metric-sub" id="sys-total-disk-sub">Available on disk</span>
+              </div>
+
+              <!-- Metric 3: RAM Usage & Free RAM -->
+              <div class="popup-metric-box">
+                <div class="popup-metric-label">
+                  <i data-lucide="cpu"></i>
+                  <span>RAM Usage</span>
+                </div>
+                <div class="popup-metric-val" id="sys-ram-used-val">Loading...</div>
+                <div class="popup-mini-progress">
+                  <div class="popup-mini-progress-bar" id="sys-ram-progress-bar" style="width: 0%;"></div>
+                </div>
+                <span class="popup-metric-sub" id="sys-free-ram-sub">Free: Calculating...</span>
+              </div>
+
+              <!-- Metric 4: System & Bot Uptime -->
+              <div class="popup-metric-box">
+                <div class="popup-metric-label">
+                  <i data-lucide="clock"></i>
+                  <span>System Uptime</span>
+                </div>
+                <div class="popup-metric-val" id="sys-uptime-val">Loading...</div>
+                <span class="popup-metric-sub" id="sys-bot-uptime-sub">Bot: Calculating...</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 6. Application Crash History & Health Diagnostics Card -->
+          <div class="popup-crash-card" id="popup-crash-card">
+            <div class="popup-crash-header">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="setting-icon-sm" style="background: rgba(244, 63, 94, 0.15); color: #F43F5E;">
+                  <i data-lucide="shield-alert" style="width: 15px; height: 15px;"></i>
+                </div>
+                <div>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="popup-crash-title">Application Crash History</span>
+                    <span class="badge" id="popup-crash-badge" style="background: rgba(16, 185, 129, 0.15); color: #10B981; font-size: 0.68rem; font-weight: 700;">Healthy</span>
+                  </div>
+                  <p class="popup-crash-subtitle">System crash logs, root causes & memory diagnostics</p>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <button type="button" class="btn btn-secondary btn-xs" id="btn-refresh-crash-logs" title="Refresh Crash Logs">
+                  <i data-lucide="refresh-cw" style="width: 11px; height: 11px;"></i>
+                  <span>Refresh</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-xs text-danger" id="btn-clear-crash-logs" title="Clear Crash History">
+                  <i data-lucide="trash-2" style="width: 11px; height: 11px;"></i>
+                  <span>Clear</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Crash Telemetry Summary Bar -->
+            <div class="crash-summary-bar">
+              <div class="crash-summary-stat">
+                <span class="stat-label">Total Crashes</span>
+                <span class="stat-val" id="crash-stat-total">0</span>
+              </div>
+              <div class="crash-summary-stat">
+                <span class="stat-label">Last Crash</span>
+                <span class="stat-val" id="crash-stat-last">Never</span>
+              </div>
+              <div class="crash-summary-stat">
+                <span class="stat-label">Primary Cause</span>
+                <span class="stat-val" id="crash-stat-cause">None</span>
+              </div>
+              <div class="crash-summary-stat" style="border-right: none; margin-left: auto;">
+                <button type="button" class="btn btn-secondary btn-xs" id="btn-simulate-test-crash" title="Simulate a test crash log entry" style="font-size: 0.68rem; padding: 2px 7px;">
+                  <i data-lucide="flask-conical" style="width: 11px; height: 11px;"></i>
+                  <span>Simulate Test</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Crash Log Entries Container -->
+            <div class="crash-logs-container" id="crash-logs-container">
+              <div class="crash-empty-state" id="crash-empty-state">
+                <i data-lucide="check-circle" style="width: 24px; height: 24px; color: #10B981;"></i>
+                <div>
+                  <strong>No crashes recorded</strong>
+                  <p>Your Capybot system has been running stably with no runtime terminations.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 7. Danger Zone: Delete Account -->
+          <div class="popup-setting-row"
+            style="border-top: 1px dashed rgba(239, 68, 68, 0.25); margin-top: 4px; padding-top: 14px;">
+            <div class="popup-row-left">
+              <div class="setting-icon-sm" style="background: rgba(239, 68, 68, 0.15); color: #EF4444;">
+                <i data-lucide="trash-2"></i>
+              </div>
+              <div>
+                <span class="popup-row-title" style="color: #EF4444;">Delete Account</span>
+                <p class="popup-row-desc">Permanently erase account, bot credentials & all data</p>
+              </div>
+            </div>
+            <button class="btn btn-secondary btn-sm text-danger" id="btn-popup-delete-account"
+              title="Permanently delete account">
+              <i data-lucide="trash-2"></i>
+              <span>Delete</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="justify-content: space-between;">
+        <button class="btn btn-secondary btn-sm text-danger" id="btn-popup-logout" title="Log out from dashboard">
+          <i data-lucide="log-out"></i>
+          <span>Log Out</span>
+        </button>
+        <button class="btn btn-primary btn-sm" id="btn-dismiss-user-settings">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- USER AUTHENTICATION MODAL (Login & Sign Up) -->
+  <div class="modal-backdrop" id="auth-modal">
+    <div class="modal-card auth-modal-card">
+      <div class="auth-brand-header">
+        <div class="brand-logo mb-4" style="margin: 0 auto 16px auto;">
+          <img src="/assets/capybot_logo.png" alt="CapyBot Mascot Logo" class="brand-logo-img">
+        </div>
+        <h2 class="auth-title">Welcome to CapyBot<span class="brand-badge">V1.1</span></h2>
+        <p class="auth-subtitle">Sign in or register to manage your WhatsApp Bot & Groups</p>
+      </div>
+
+      <!-- Auth Tabs: Sign In / Create Account -->
+      <div class="auth-tabs">
+        <button class="auth-tab-btn active" id="auth-tab-login" type="button">Sign In</button>
+        <button class="auth-tab-btn" id="auth-tab-register" type="button">Create Account</button>
+      </div>
+
+      <!-- Error / Notification Alert Box -->
+      <div class="auth-alert" id="auth-alert-box" style="display: none;">
+        <i data-lucide="alert-circle" id="auth-alert-icon"></i>
+        <span id="auth-alert-msg"></span>
+      </div>
+
+      <form id="auth-form" class="auth-form">
+        <!-- Display Name (Shown only on Register) -->
+        <div class="form-group" id="auth-name-group" style="display: none;">
+          <label class="form-label" for="auth-name-input">Display Name / Alias (Optional)</label>
+          <div class="input-with-icon">
+            <i data-lucide="user" class="input-icon"></i>
+            <input type="text" id="auth-name-input" class="form-input" placeholder="e.g. John Doe">
+          </div>
+        </div>
+
+        <!-- Phone Number Input -->
+        <div class="form-group">
+          <label class="form-label" for="auth-phone-input">Phone Number (with Country Code)</label>
+          <div class="input-with-icon">
+            <i data-lucide="phone" class="input-icon"></i>
+            <input type="tel" id="auth-phone-input" class="form-input" placeholder="e.g. 60123456789 or 14155552671"
+              required autocomplete="tel">
+          </div>
+          <div class="input-helper">Enter digits only with country code (no spaces, +, or dashes).</div>
+        </div>
+
+        <!-- Password Input -->
+        <div class="form-group">
+          <label class="form-label" for="auth-password-input">Password</label>
+          <div class="input-with-icon">
+            <i data-lucide="lock" class="input-icon"></i>
+            <input type="password" id="auth-password-input" class="form-input" placeholder="••••••••" required
+              autocomplete="current-password" minlength="6">
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block btn-lg" id="btn-submit-auth" style="margin-top: 20px;">
+          <span id="auth-submit-label">Sign In to Dashboard</span>
+          <i data-lucide="arrow-right"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- GROUP MEMBERS MANAGEMENT MODAL -->
+  <div class="modal-backdrop" id="group-members-modal">
+    <div class="modal-card modal-lg" style="max-width: 780px; width: 95%;">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <i data-lucide="users" class="modal-icon text-primary"></i>
+          <div>
+            <h3 class="modal-title" id="modal-group-name">Group Members</h3>
+            <p class="modal-subtitle" id="modal-group-subtitle">0 members • WhatsApp Group</p>
+          </div>
+        </div>
+        <button class="modal-close" id="btn-close-members-modal">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 16px 20px;">
+        <div class="table-search-wrap" style="margin-bottom: 14px;">
+          <i data-lucide="search" class="search-icon"></i>
+          <input type="text" id="modal-member-search" class="search-input"
+            placeholder="Search members by name or phone...">
+        </div>
+
+        <div class="table-responsive" style="max-height: 420px; overflow-y: auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Member</th>
+                <th>Phone</th>
+                <th>Role</th>
+                <th>Chats</th>
+                <th class="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="modal-members-tbody">
+              <tr>
+                <td colspan="5" class="table-empty">
+                  <div class="spinner" style="margin: 0 auto 8px auto;"></div>
+                  <p>Loading group members...</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="justify-content: space-between;">
+        <span class="text-dim" style="font-size: 0.78rem;" id="modal-members-admin-hint">⚠️ To remove members, CapyBot
+          must be a Group Admin.</span>
+        <button class="btn btn-primary btn-sm" id="btn-dismiss-members-modal">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- QR CODE MODAL -->
+  <div class="modal-backdrop" id="qr-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <i data-lucide="smartphone" class="modal-icon"></i>
+          <div>
+            <h3 class="modal-title">Link WhatsApp Account</h3>
+            <p class="modal-subtitle">Scan this QR Code with your WhatsApp mobile app</p>
+          </div>
+        </div>
+        <button class="modal-close" id="btn-close-qr">&times;</button>
+      </div>
+
+      <div class="modal-body text-center">
+        <div class="qr-container" id="qr-container">
+          <div class="qr-spinner" id="qr-spinner">
+            <div class="spinner"></div>
+            <p id="qr-status-msg">Generating pairing QR code...</p>
+          </div>
+          <img id="qr-image" src="" alt="WhatsApp QR Code" class="qr-image" style="display: none;">
+        </div>
+
+        <div class="qr-instructions">
+          <ol>
+            <li>Open <strong>WhatsApp</strong> on your mobile phone</li>
+            <li>Tap <strong>Settings / Menu (⋮)</strong> &gt; <strong>Linked Devices</strong></li>
+            <li>Tap <strong>Link a Device</strong> and scan this QR code</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-restart-auth">
+          <i data-lucide="refresh-cw"></i>
+          <span>Reset Session / New QR</span>
+        </button>
+        <button class="btn btn-primary" id="btn-dismiss-modal">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIRM RESET MODAL -->
+  <div class="modal-backdrop" id="confirm-modal">
+    <div class="modal-card modal-sm">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <i data-lucide="alert-octagon" class="modal-icon text-danger"></i>
+          <div>
+            <h3 class="modal-title" id="confirm-modal-title">Reset Chat Count</h3>
+          </div>
+        </div>
+        <button class="modal-close" id="btn-close-confirm">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="confirm-modal-msg">Are you sure you want to reset this chat count? This action cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-cancel-confirm">Cancel</button>
+        <button class="btn btn-danger" id="btn-execute-confirm">Yes, Reset Count</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ON-DEVICE AI ONBOARDING MODAL -->
+  <div class="modal-backdrop" id="ai-onboarding-modal">
+    <div class="modal-card ai-onboarding-card"
+      style="max-width: 500px; width: 92%; text-align: center; padding: 28px 24px;">
+      <div class="ai-onboard-glow-icon">
+        <i data-lucide="sparkles"></i>
+      </div>
+      <h3 class="modal-title" style="font-size: 1.35rem; margin-top: 14px; margin-bottom: 8px;">Enable AI features?</h3>
+      <p class="modal-subtitle"
+        style="font-size: 0.88rem; line-height: 1.55; color: var(--text-muted); margin-bottom: 20px;">
+        Power up your WhatsApp Bot with local on-device <strong>Qwen 3.5</strong> foundation models for visual photo
+        recognition, smart Q&A (<code class="inline-code">.ask</code>), group recaps (<code
+          class="inline-code">.summarize</code>), and private AI chatbot assistant.
+      </p>
+
+      <div class="ai-onboard-perks">
+        <div class="ai-onboard-perk-item">
+          <i data-lucide="shield-check" class="text-emerald"></i>
+          <span>100% Private & On-Device</span>
+        </div>
+        <div class="ai-onboard-perk-item">
+          <i data-lucide="zap" class="text-amber"></i>
+          <span>Zero API Keys or Costs</span>
+        </div>
+        <div class="ai-onboard-perk-item">
+          <i data-lucide="eye" class="text-teal"></i>
+          <span>Visual Image Recognition</span>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-top: 24px; flex-direction: column;">
+        <button type="button" class="btn btn-primary btn-lg btn-block" id="btn-onboard-enable-ai"
+          style="padding: 12px 18px; font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <i data-lucide="sparkles"></i>
+          <span>Yes, Enable AI & Choose Model</span>
+          <i data-lucide="arrow-right"></i>
+        </button>
+        <button type="button" class="btn btn-secondary btn-block" id="btn-onboard-skip-ai"
+          style="padding: 9px 16px; font-size: 0.84rem; color: var(--text-muted);">
+          <span>No, Keep AI Disabled for Now</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HIGH-RAM / POTENTIAL CRASH WARNING CONFIRMATION MODAL -->
+  <div class="modal-backdrop" id="ai-ram-warning-modal">
+    <div class="modal-card modal-md" style="max-width: 540px; width: 92%;">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="setting-icon-sm bg-rose" style="width: 38px; height: 38px; border-radius: 10px;">
+            <i data-lucide="alert-triangle"></i>
+          </div>
+          <div>
+            <h3 class="modal-title" style="color: #F43F5E;">High Memory Warning</h3>
+            <p class="modal-subtitle">Potential crash or performance degradation detected</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close" id="btn-close-ram-warning">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 18px 22px;">
+        <div class="ram-warning-hero mb-4">
+          <p style="font-size: 0.92rem; line-height: 1.5; color: var(--text-color); margin-bottom: 12px;">
+            The model you selected (<strong id="warn-target-model-name">Qwen 3.5 4B Q8</strong>) requires ~<strong
+              id="warn-target-ram" class="text-rose">5,400 MB</strong> of RAM.
+          </p>
+
+          <div class="ram-comparison-grid">
+            <div class="ram-comp-box">
+              <span class="ram-comp-label">Model Requirement</span>
+              <span class="ram-comp-val text-rose" id="warn-model-ram-val">5.4 GB</span>
+            </div>
+            <div class="ram-comp-box">
+              <span class="ram-comp-label">Available Free RAM</span>
+              <span class="ram-comp-val text-amber" id="warn-system-free-val">1.2 GB</span>
+            </div>
+            <div class="ram-comp-box">
+              <span class="ram-comp-label">Total System RAM</span>
+              <span class="ram-comp-val" id="warn-system-total-val">8.0 GB</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="ram-warning-callout mb-4">
+          <i data-lucide="info" class="text-amber"></i>
+          <div>
+            <strong>Why this matters:</strong> Running an AI model that exceeds available memory can trigger aggressive
+            disk swapping, server latency spikes, or cause the operating system to forcefully terminate (OOM kill) the
+            bot process.
+          </div>
+        </div>
+
+        <div class="ram-recommended-suggestion-box" id="warn-recommendation-suggestion">
+          <div
+            style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px;">
+            Recommended Alternative for Safe Performance</div>
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+            <strong id="warn-recommended-alt-name" class="text-teal" style="font-size: 0.95rem;">Qwen 3.5 0.8B Q4 (~800
+              MB RAM)</strong>
+            <span class="badge"
+              style="background: rgba(45, 212, 191, 0.15); color: #2DD4BF; border: 1px solid rgba(45, 212, 191, 0.3); font-size: 0.72rem;">Safe</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="gap: 8px; justify-content: flex-end; flex-wrap: wrap;">
+        <button type="button" class="btn btn-secondary" id="btn-cancel-ram-warning">Cancel</button>
+        <button type="button" class="btn btn-primary" id="btn-apply-recommended-model">
+          <i data-lucide="shield-check"></i>
+          <span>Switch to Recommended Model</span>
+        </button>
+        <button type="button" class="btn btn-danger btn-sm" id="btn-proceed-ram-warning" style="opacity: 0.85;">
+          <span>Proceed Anyway</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- App Script -->
+  <script src="/js/dashboard.js"></script>
+</body>
+
+</html>

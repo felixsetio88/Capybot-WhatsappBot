@@ -1,0 +1,40 @@
+{
+  "name": "whatsapp-group-bot",
+  "version": "1.0.0",
+  "description": "WhatsApp Group Bot with message counter, link blocker, auto-reply, and web admin dashboard",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "lsof -t -iTCP:3000 -sTCP:LISTEN 2>/dev/null | xargs kill -9 2>/dev/null || true; node src/server.js",
+    "dev": "lsof -t -iTCP:3000 -sTCP:LISTEN 2>/dev/null | xargs kill -9 2>/dev/null || true; node --watch src/server.js",
+    "daemon": "node scripts/daemon.js",
+    "start:pm2": "pm2 start ecosystem.config.cjs",
+    "restart:pm2": "pm2 restart capybot",
+    "stop:pm2": "pm2 stop capybot",
+    "test": "node tests/test_core.js && node tests/test_crash_logger.js && node tests/test_interactive_commands.js",
+    "test:crash": "node tests/test_crash_logger.js"
+  },
+  "keywords": [
+    "whatsapp",
+    "bot",
+    "baileys",
+    "group-management",
+    "dashboard"
+  ],
+  "author": "",
+  "license": "ISC",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.19",
+    "better-sqlite3": "^11.8.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "pino": "^9.6.0",
+    "qrcode": "^1.5.4",
+    "sharp": "^0.35.3",
+    "socket.io": "^4.8.1"
+  }
+}
